@@ -1,120 +1,153 @@
--- MAIN ENTITY TABLES
+DROP TABLE UserBookmarks      CASCADE CONSTRAINTS PURGE;
+DROP TABLE SpaceTemplates     CASCADE CONSTRAINTS PURGE;
+DROP TABLE UserWorkspace      CASCADE CONSTRAINTS PURGE;
+DROP TABLE Feedback           CASCADE CONSTRAINTS PURGE;
+DROP TABLE SupportTicket      CASCADE CONSTRAINTS PURGE;
+DROP TABLE SupportAgent       CASCADE CONSTRAINTS PURGE;
+DROP TABLE Invoice            CASCADE CONSTRAINTS PURGE;
+DROP TABLE PromptTemplate     CASCADE CONSTRAINTS PURGE;
+DROP TABLE Message            CASCADE CONSTRAINTS PURGE;
+DROP TABLE Conversation       CASCADE CONSTRAINTS PURGE;
+DROP TABLE Persona            CASCADE CONSTRAINTS PURGE;
+DROP TABLE Workspace          CASCADE CONSTRAINTS PURGE;
+DROP TABLE Users              CASCADE CONSTRAINTS PURGE;
+DROP TABLE MembershipTier     CASCADE CONSTRAINTS PURGE;
 
-CREATE TABLE User (
-    UserID        integer PRIMARY KEY,
-    Name          varchar2(20),
-    Email         varchar2(30),
-    preferredUI   varchar2(15),   -- Language, like English
-    DateCreated   DATE,          -- Of account creation
-    TierID        integer FOREIGN KEY
+DROP SEQUENCE user_seq;
+DROP SEQUENCE conv_seq;
+DROP SEQUENCE msg_seq;
+DROP SEQUENCE prompt_seq;
+DROP SEQUENCE ticket_seq;
+DROP SEQUENCE invoice_seq;
+DROP SEQUENCE feedback_seq;
+DROP SEQUENCE persona_seq;
+DROP SEQUENCE workspace_seq;
+DROP SEQUENCE agent_seq;
+
+-- sequences for auto-incrementing id attributes
+CREATE SEQUENCE user_seq      START WITH 1000 INCREMENT BY 1;
+CREATE SEQUENCE conv_seq      START WITH 1000 INCREMENT BY 1;
+CREATE SEQUENCE msg_seq       START WITH 1000 INCREMENT BY 1;
+CREATE SEQUENCE prompt_seq    START WITH 1000 INCREMENT BY 1;
+CREATE SEQUENCE ticket_seq    START WITH 1000 INCREMENT BY 1;
+CREATE SEQUENCE invoice_seq   START WITH 1000 INCREMENT BY 1;
+CREATE SEQUENCE feedback_seq  START WITH 1000 INCREMENT BY 1;
+CREATE SEQUENCE persona_seq   START WITH 1000 INCREMENT BY 1;
+CREATE SEQUENCE workspace_seq START WITH 1000 INCREMENT BY 1;
+CREATE SEQUENCE agent_seq     START WITH 1000 INCREMENT BY 1;
+
+--entities tables
+CREATE TABLE MembershipTier (
+    TierID        INTEGER PRIMARY KEY,
+    TierName      VARCHAR2(15) NOT NULL,
+    MaxMsgPerDay  INTEGER NOT NULL,
+    Fee           NUMBER(10,2) NOT NULL,
+    ProAccess     INTEGER DEFAULT 0 CHECK (ProAccess IN (0,1))  -- 0=no, 1=yes
 );
 
-CREATE TABLE Conversation (
-  ConversationID  integer PRIMARY KEY,
-  title           varchar2(50),
-  DateCreated     DATE,
-  versionID       integer FOREIGN KEY,
-  personaID       integer FOREIGN KEY,
-  userID          integer FOREIGN KEY,
-  workspaceID     integer FOREIGN KEY,
-);
-
-CREATE TABLE Message (
-  MessageID       integer PRIMARY KEY,
-  SenderRole      varchar2(10), -- "User" or "AI"
-  Time            DATE,
-  Content         varchar2(1000),
-  ConversationID  integer FOREIGN KEY
-);
-
-CREATE TABLE Feedback (
-  FeedbackID   integer PRIMARY KEY,
-  Rating       integer,          -- 1-10?
-  Text         varchar2(500), -- optional
-  Date         DATE,
-  userID       integer FOREIGN KEY,
-  MessageID    integer FOREIGN KEY
+-- Users because User is an Oracle keyword
+CREATE TABLE Users (
+    UserID        INTEGER PRIMARY KEY,
+    Name          VARCHAR2(20) NOT NULL,
+    Email         VARCHAR2(30) UNIQUE NOT NULL,
+    PreferredUI   VARCHAR2(15),
+    DateCreated   DATE NOT NULL,
+    TierID        INTEGER NOT NULL REFERENCES MembershipTier(TierID)
 );
 
 CREATE TABLE Persona (
-  PersonaID      integer,
-  Name           varchar2(20),
-  Guidelines     varchar2(75), -- eg. "Act as a techincal writer"
-  DateCreated    DATE,
-  VersionID      integer,
-  deletedStatus  integer          -- 0 = active, > 0 is deleted
-  PRIMARY KEY (PersonaID, versionID)
-);
-
-CREATE TABLE Invoice (
-  InvoiceID      integer PRIMARY KEY,
-  UserID         integer FOREIGN KEY,
-  Amount         float(2),   --  to 2 decimal places for cents
-  Date           DATE,
-  status         varchar2(10) -- "paid" or "unpaid"
-);
-
-CREATE TABLE PromptTemplate (
-  PromptID       integer PRIMARY KEY,
-  Category       varchar2(20),   -- user can categorize templates
-  Visibility     varchar2(10),   -- "private" or "shared" within a workspace
-  Prompt         varchar2(250),
-  userID         integer FOREIGN KEY
+    PersonaID     INTEGER,
+    VersionID     INTEGER,
+    Name          VARCHAR2(20) NOT NULL,
+    Guidelines    VARCHAR2(75),
+    DateCreated   DATE NOT NULL,
+    DeletedStatus INTEGER DEFAULT 0,   -- 0=active, 1=deleted
+    PRIMARY KEY (PersonaID, VersionID)
 );
 
 CREATE TABLE Workspace (
-  WorskpaceID    integer PRIMARY KEY,
-  Name           varchar2(50),
-  Visibility     varchar2(10),  -- "shared" or "private"
-  DateCreated    DATE
+    WorkspaceID   INTEGER PRIMARY KEY,
+    Name          VARCHAR2(50) NOT NULL,
+    Visibility    VARCHAR2(10) CHECK (Visibility IN ('shared','private')),
+    DateCreated   DATE NOT NULL
 );
 
-CREATE TABLE BillingProfile (
-  ProfileID      integer PRIMARY KEY,
-  billingAdress  varchar2(50),
-  PaymentMethod  varchar2(20),
-  userID         integer FOREIGN KEY
+CREATE TABLE Conversation (
+    ConversationID INTEGER PRIMARY KEY,
+    Title          VARCHAR2(50),
+    DateCreated    DATE NOT NULL,
+    VersionID      INTEGER,
+    PersonaID      INTEGER,
+    UserID         INTEGER NOT NULL REFERENCES Users(UserID) ON DELETE CASCADE,
+    WorkspaceID    INTEGER REFERENCES Workspace(WorkspaceID) ON DELETE SET NULL,
+    FOREIGN KEY (PersonaID, VersionID) REFERENCES Persona(PersonaID, VersionID)
 );
 
-CREATE TABLE MembershipTier (
-  TierID         integer PRIMARY KEY,
-  TierName       varchar2(15), -- "Free", "Plus", or "Enterprise"
-  MaxMsgPerDay   integer,
-  Fee            float(2),
-  ProAccess      integer -- 1 or 0, if tier allows pro models to be used
+CREATE TABLE Message (
+    MessageID      INTEGER PRIMARY KEY,
+    SenderRole     VARCHAR2(10) CHECK (SenderRole IN ('User','AI')),
+    Time           DATE NOT NULL,
+    Content        VARCHAR2(4000) NOT NULL,
+    ConversationID INTEGER NOT NULL REFERENCES Conversation(ConversationID) ON DELETE CASCADE
 );
 
-CREATE TABLE SupportTicket (
-  TicketID       integer PRIMARY KEY,
-  UserID         integer FOREIGN KEY,
-  AgentID        integer FOREIGN KEY
-  Topic          varchar2(50),
-  DateOpened     DATE,
-  DateClosed     DATE,
-  Status         varchar2(15) -- "Resolved" or "Escalated"
+CREATE TABLE Feedback (
+    FeedbackID    INTEGER PRIMARY KEY,
+    Rating        INTEGER CHECK (Rating BETWEEN 1 AND 10),
+    Text          VARCHAR2(500),
+    Date          DATE NOT NULL,
+    UserID        INTEGER NOT NULL REFERENCES Users(UserID),
+    MessageID     INTEGER NOT NULL UNIQUE REFERENCES Message(MessageID)
+);
+
+CREATE TABLE PromptTemplate (
+    PromptID      INTEGER PRIMARY KEY,
+    Category      VARCHAR2(20),
+    Visibility    VARCHAR2(10) CHECK (Visibility IN ('private','shared')),
+    Prompt        VARCHAR2(250) NOT NULL,
+    UserID        INTEGER NOT NULL REFERENCES Users(UserID)
+);
+
+CREATE TABLE Invoice (
+    InvoiceID     INTEGER PRIMARY KEY,
+    UserID        INTEGER NOT NULL REFERENCES Users(UserID),
+    Amount        NUMBER(10,2) NOT NULL,
+    Date          DATE NOT NULL,
+    Status        VARCHAR2(10) CHECK (Status IN ('paid','unpaid'))
 );
 
 CREATE TABLE SupportAgent (
-  AgentID       integer PRIMARY KEY,
-  Name          varchar2(20)
+    AgentID       INTEGER PRIMARY KEY,
+    Name          VARCHAR2(20) NOT NULL
 );
 
+CREATE TABLE SupportTicket (
+    TicketID      INTEGER PRIMARY KEY,
+    UserID        INTEGER NOT NULL REFERENCES Users(UserID),
+    AgentID       INTEGER NOT NULL REFERENCES SupportAgent(AgentID),
+    Topic         VARCHAR2(50) NOT NULL,
+    DateOpened    DATE NOT NULL,
+    DateClosed    DATE,
+    Status        VARCHAR2(15) CHECK (Status IN ('Resolved','Escalated'))
+);
 
--- RELATIONAL TABLES, for the many to many relationships
+-- relationship tables
+CREATE TABLE SpaceTemplates (
+    WorkspaceID   INTEGER REFERENCES Workspace(WorkspaceID) ON DELETE CASCADE,
+    PromptID      INTEGER REFERENCES PromptTemplate(PromptID) ON DELETE CASCADE,
+    PRIMARY KEY (WorkspaceID, PromptID)
+);
 
 CREATE TABLE UserWorkspace (
-  UserID        integer,
-  WorkspaceID   integer,
-  DateJoined    DATE,
-  Role          varchar2(20),
+    UserID        INTEGER REFERENCES Users(UserID) ON DELETE CASCADE,
+    WorkspaceID   INTEGER REFERENCES Workspace(WorkspaceID) ON DELETE CASCADE,
+    DateJoined    DATE NOT NULL,
+    Role          VARCHAR2(20) CHECK (Role IN ('Admin','Editor','Viewer')), -- Admin can change templates and other users' roles; editors can only change templates; viewers can only use templates
+    PRIMARY KEY (UserID, WorkspaceID)
 );
 
-CREATE TABLE spaceTemplates (
-  WorkspaceID  integer,
-  PromptId     integer
-);
-
-CREATE TABLE userBookmarks (
-  UserID       integer,
-  MessageId    integer
+CREATE TABLE UserBookmarks (
+    UserID        INTEGER REFERENCES Users(UserID) ON DELETE CASCADE,
+    MessageID     INTEGER REFERENCES Message(MessageID) ON DELETE CASCADE,
+    PRIMARY KEY (UserID, MessageID)
 );

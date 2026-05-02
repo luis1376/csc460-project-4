@@ -1,3 +1,4 @@
+
 /**
  * 	Authors: 
  * 			Luis Miranda			mirandaquijada@arizona.edu
@@ -52,53 +53,49 @@ public class LLMEcosystem
 			System.exit(1);
 		}
 	}
-	
-	
-	
-	/**======================================================
+
+	/**
+	 * ====================================================== 
 	 * Manage user accounts -- functionality 1
 	 */
-	//TODO
-	
-	
-	
-	/**======================================================
+	// TODO
+
+	/**
+	 * ====================================================== 
 	 * Handle Conversations & messages -- functionality 2
 	 */
-	//TODO
-	
-	
-	
-	/**======================================================
+	// TODO
+
+	/**
+	 * ====================================================== 
 	 * workspace organization -- functionality 3
 	 */
-	//TODO
-	
-	
-	
-	/**======================================================
+	// TODO
+
+	/**
+	 * ====================================================== 
 	 * Persona management -- functionality 4
 	 */
-	//TODO
+	// TODO
 
-	
-	
-	/**======================================================
+	/**
+	 * ====================================================== 
 	 * Prompt library -- functionality 5 
-	 * hasPromptEditPermission() 
-	 * addPrompt()
-	 * updatePrompt()
+	 * - hasPromptEditPermission() 
+	 * - addPrompt() 
+	 * - updatePrompt()
 	 */
 	/**
-	 * hasPromptEditPermissions()
-	 * Determines whether the given user has sufficient role level within a workspace that allows them to edit Prompt Templates within that workspace
+	 * hasPromptEditPermissions() Determines whether the given user has sufficient
+	 * role level within a workspace that allows them to edit Prompt Templates
+	 * within that workspace
 	 * 
 	 * @param int userId -- the user's UserID value
 	 * @param int workspaceId -- the workspace's WorkspaceID value
 	 * 
 	 * @return
 	 * 
-	 * @pre 
+	 * @pre
 	 * @post
 	 */
 	private boolean hasPromptEditPermission(int userId, int workspaceId) throws SQLException
@@ -121,22 +118,20 @@ public class LLMEcosystem
 	}
 
 	/**
-	 * addPrompt()
-	 * Adds the specified prompt int the PromptTemplate table
+	 * addPrompt() Adds the specified prompt int the PromptTemplate table
 	 * 
-	 * @param int workspaceId -- the workspace's WorkspaceID value
-	 * @param int userId -- the user's UserID value
+	 * @param int    workspaceId -- the workspace's WorkspaceID value
+	 * @param int    userId -- the user's UserID value
 	 * @param String category -- the PromptTemplate's Category value
 	 * @param String visibility -- the PromptTemplate's Visiblity value
 	 * @param String promptText -- the actual prompt given by this PromptTemplate
 	 * 
 	 * @return
 	 * 
-	 * @pre 
+	 * @pre
 	 * @post
 	 */
-	public int addPrompt(int workspaceId, int userId, String category, String visibility, String promptText)
-			throws SQLException
+	public int addPrompt(int workspaceId, int userId, String category, String visibility, String promptText)throws SQLException
 	{
 		if (!hasPromptEditPermission(userId, workspaceId))
 		{
@@ -173,23 +168,24 @@ public class LLMEcosystem
 	}
 
 	/**
-	 * updatePrompt()
-	 * Updates the specified existing prompt int the PromptTemplate table
+	 * updatePrompt() Updates the specified existing prompt int the PromptTemplate
+	 * table
 	 * 
-	 * @param int promptId -- the PromptTemplate's PromptID value
-	 * @param int userId -- the user's UserID value
-	 * @param String newCategory -- the new value for the PromptTemplate's Category attribute
-	 * @param String visibility -- the new value for the PromptTemplate's Visiblity attribute
-	 * @param String promptText -- the new value for the PromptTemplate's Prompt attribute
+	 * @param int    promptId -- the PromptTemplate's PromptID value
+	 * @param int    userId -- the user's UserID value
+	 * @param String newCategory -- the new value for the PromptTemplate's Category
+	 *               attribute
+	 * @param String visibility -- the new value for the PromptTemplate's Visiblity
+	 *               attribute
+	 * @param String promptText -- the new value for the PromptTemplate's Prompt
+	 *               attribute
 	 * 
 	 * @return
 	 * 
-	 * @pre 
+	 * @pre
 	 * @post
 	 */
-	public boolean updatePrompt(
-			int promptId, int userId, String newCategory, String newVisibility, String newPromptText
-	) throws SQLException
+	public boolean updatePrompt(int promptId, int userId, String newCategory, String newVisibility, String newPromptText) throws SQLException
 	{
 		// Find which workspace owns this prompt
 		String findWorkspace = "SELECT WorkspaceID FROM SpaceTemplates WHERE PromptID = ?";
@@ -221,84 +217,60 @@ public class LLMEcosystem
 		}
 	}
 
-	
-	
-	/**======================================================
-	 * Subscription tracking -- functionality 6
-	 * updateUserSubscription()
-	 * getUserDailyLimit()
-	 * countUserMessagesToday()
-	 * insertMessageIfWithinLimit()
+	/**
+	 * ====================================================== 
+	 * Subscription tracking -- functionality 6 
+	 * - updateUserSubscription() 
+	 * - getUserDailyLimit()
+	 * - countUserMessagesToday() 
+	 * - insertMessageIfWithinLimit()
 	 */
 	/**
-	 * updateUserSubscription()
-	 * Updates a user's subscription status -- which subscription tier their account is associated with
+	 * updateUserSubscription() Updates a user's subscription status -- which
+	 * subscription tier their account is associated with
 	 * 
 	 * @param int userId -- the user's UserID value
-	 * @param int newTierId -- the TierID value of the subscription tier that this user is being assigned
+	 * @param int newTierId -- the TierID value of the subscription tier that this
+	 *            user is being assigned
 	 * 
 	 * @return
 	 * 
-	 * @pre 
+	 * @pre
 	 * @post
 	 */
 	public boolean updateUserSubscription(int userId, int newTierId) throws SQLException
 	{
-		String checkSql = "SELECT 1 FROM TierUser WHERE UserID = ?";
-		boolean exists;
-		try (PreparedStatement stmt = conn.prepareStatement(checkSql))
+		String sql = "UPDATE Users SET TierID = ? WHERE UserID = ?";
+		try (PreparedStatement stmt = conn.prepareStatement(sql))
 		{
-			stmt.setInt(1, userId);
-			try (ResultSet rs = stmt.executeQuery())
-			{
-				exists = rs.next();
-			}
-		}
-
-		if (exists)
-		{
-			String updateSql = "UPDATE TierUser SET TierID = ? WHERE UserID = ?";
-			try (PreparedStatement stmt = conn.prepareStatement(updateSql))
-			{
-				stmt.setInt(1, newTierId);
-				stmt.setInt(2, userId);
-				return stmt.executeUpdate() > 0;
-			}
-		}
-		else
-		{
-			String insertSql = "INSERT INTO TierUser (UserID, TierID) VALUES (?, ?)";
-			try (PreparedStatement stmt = conn.prepareStatement(insertSql))
-			{
-				stmt.setInt(1, userId);
-				stmt.setInt(2, newTierId);
-				return stmt.executeUpdate() > 0;
-			}
+			stmt.setInt(1, newTierId);
+			stmt.setInt(2, userId);
+			return stmt.executeUpdate() > 0;
 		}
 	}
 
 	/**
-	 * getUserDailyLimit()
-	 * Gets the given user's limit on max messages per day based on their subscription tier
+	 * getUserDailyLimit() Gets the given user's limit on max messages per day based
+	 * on their subscription tier
 	 * 
 	 * @param int userId -- the user's UserID value
 	 * 
 	 * @return
 	 * 
-	 * @pre 
+	 * @pre
 	 * @post
 	 */
 	private int getUserDailyLimit(int userId) throws SQLException
 	{
-		String sql = "SELECT MAXMessgPerDay FROM MembershipTier m, TierUser t "
-				+ "WHERE t.UserID = ? AND t.TierID = m.TierID";
+		String sql = "SELECT m.MaxMsgPerDay FROM Users u " + "JOIN MembershipTier m ON u.TierID = m.TierID "
+				+ "WHERE u.UserID = ?";
 		try (PreparedStatement stmt = conn.prepareStatement(sql))
 		{
 			stmt.setInt(1, userId);
 			try (ResultSet rs = stmt.executeQuery())
 			{
 				if (rs.next())
-					return rs.getInt("MAXMessgPerDay");
+					return rs.getInt("MaxMsgPerDay");
 				else
 					throw new SQLException("User does not have a subscription tier assigned");
 			}
@@ -306,54 +278,50 @@ public class LLMEcosystem
 	}
 
 	/**
-	 * countUserMessagesToday()
-	 * Calculates the given user's number of messages sent today
-	 * - For every tuple in Owns which has UserID = userId, use the matching ConversationID to...
-	 * - Query the Contains relationship table for all tuples that have the matching ConversationID. For all of these tuples's MessageID values...
-	 * - Query the Message table for tuples whose Time attribute is on today's date
+	 * countUserMessagesToday() Calculates the given user's number of messages sent
+	 * today
 	 * 
 	 * @param int userId -- the user's UserID value
 	 * 
 	 * @return
 	 * 
-	 * @pre 
+	 * @pre
 	 * @post
 	 */
 	private int countUserMessagesToday(int userId) throws SQLException
 	{
-		String sql = "SELECT COUNT(*) AS msg_count " + "FROM Message m "
-				+ "JOIN Contains c ON m.MessageID = c.MessageID "
-				+ "JOIN Conversation conv ON c.ConversationID = conv.ConversationID "
-				+ "JOIN Owns o ON conv.ConversationID = o.ConversationID "
-				+ "WHERE o.UserID = ? AND TRUNC(m.Time) = TRUNC(SYSDATE)";
+		String sql = "SELECT COUNT(*) FROM Message m " + "JOIN Conversation c ON m.ConversationID = c.ConversationID "
+				+ "WHERE c.UserID = ? AND TRUNC(m.Time) = TRUNC(SYSDATE)";
 		try (PreparedStatement stmt = conn.prepareStatement(sql))
 		{
 			stmt.setInt(1, userId);
 			try (ResultSet rs = stmt.executeQuery())
 			{
 				if (rs.next())
-					return rs.getInt("msg_count");
+					return rs.getInt(1);
 				return 0;
 			}
 		}
 	}
 
 	/**
-	 * insertMessageIfWithinLimit()
-	 * Checks the sender to see if they have reached their message limit for the day, if not, then add the message to the DB
+	 * insertMessageIfWithinLimit() Checks the sender to see if they have reached
+	 * their message limit for the day, if not, then add the message to the DB
 	 * 
-	 * @param int userId -- the user's UserID value
-	 * @param int conversationId -- the containing Conversation's ConversationID value
-	 * @param String senderRole -- the Role value of the sender (User) in the UserWorkspace relationship
-	 * @param String promptText -- the new value for the PromptTemplate's Prompt attribute
+	 * @param int    userId -- the user's UserID value
+	 * @param int    conversationId -- the containing Conversation's ConversationID
+	 *               value
+	 * @param String senderRole -- the Role value of the sender (User) in the
+	 *               UserWorkspace relationship
+	 * @param String promptText -- the new value for the PromptTemplate's Prompt
+	 *               attribute
 	 * 
 	 * @return
 	 * 
-	 * @pre 
+	 * @pre
 	 * @post
 	 */
-	public int insertMessageIfWithinLimit(int userId, int conversationId, String senderRole, String content)
-			throws SQLException
+	public int insertMessageIfWithinLimit(int userId, int conversationId, String senderRole, String content) throws SQLException
 	{
 		conn.setAutoCommit(false);
 		try
@@ -366,14 +334,29 @@ public class LLMEcosystem
 				return -1; // limit exceeded
 			}
 
-			String insertMsg = "INSERT INTO Message (MessageID, SenderRole, Time, Content) "
-					+ "VALUES (message_seq.NEXTVAL, ?, SYSDATE, ?)";
+			String verifySql = "SELECT 1 FROM Conversation WHERE ConversationID = ? AND UserID = ?";
+			try (PreparedStatement ps = conn.prepareStatement(verifySql))
+			{
+				ps.setInt(1, conversationId);
+				ps.setInt(2, userId);
+				try (ResultSet rs = ps.executeQuery())
+				{
+					if (!rs.next())
+					{
+						throw new SQLException("Conversation does not belong to this user");
+					}
+				}
+			}
+
+			String insertMsg = "INSERT INTO Message (MessageID, SenderRole, Time, Content, ConversationID) "
+					+ "VALUES (msg_seq.NEXTVAL, ?, SYSDATE, ?, ?)";
 			int newMessageId;
 			try (PreparedStatement stmt = conn.prepareStatement(insertMsg, new String[]
 			{ "MessageID" }))
 			{
 				stmt.setString(1, senderRole);
 				stmt.setString(2, content);
+				stmt.setInt(3, conversationId);
 				stmt.executeUpdate();
 				try (ResultSet rs = stmt.getGeneratedKeys())
 				{
@@ -382,14 +365,6 @@ public class LLMEcosystem
 					else
 						throw new SQLException("Failed to get MessageID");
 				}
-			}
-
-			String linkMsg = "INSERT INTO Contains (MessageID, ConversationID) VALUES (?, ?)";
-			try (PreparedStatement stmt = conn.prepareStatement(linkMsg))
-			{
-				stmt.setInt(1, newMessageId);
-				stmt.setInt(2, conversationId);
-				stmt.executeUpdate();
 			}
 
 			conn.commit();
@@ -405,24 +380,21 @@ public class LLMEcosystem
 			conn.setAutoCommit(true);
 		}
 	}
-	
-	
-	
-	/**======================================================
+
+	/**
+	 * ====================================================== 
 	 * Billing operations -- functionality 7
 	 */
-	//TODO
-	
-	
-	
-	/**======================================================
+	// TODO
+
+	/**
+	 * ====================================================== 
 	 * Support Ticket Lifecycle -- functionality 8
 	 */
-	//TODO
+	// TODO
 
-	
-	
-	/**======================================================
+	/**
+	 * ====================================================== 
 	 * simple test ui menu -- replace with actual text based ui later on
 	 */
 	public void runTestMenu()
