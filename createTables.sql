@@ -19,7 +19,7 @@ CREATE TABLE Conversation (
   workspaceID     integer FOREIGN KEY,
 );
 
-CREATE_TABLE Message (
+CREATE TABLE Message (
   MessageID       integer PRIMARY KEY,
   SenderRole      varchar2(10), -- "User" or "AI"
   Time            DATE,
