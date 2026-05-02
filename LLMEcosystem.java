@@ -131,15 +131,15 @@ public class LLMEcosystem
 	 * @pre
 	 * @post
 	 */
-	public int addPrompt(int workspaceId, int userId, String category, String visibility, String promptText)throws SQLException
+	public int addPrompt(int workspaceId, int userId, String category, String visibility, String promptText) throws SQLException
 	{
 		if (!hasPromptEditPermission(userId, workspaceId))
 		{
 			throw new SecurityException("User does not have permission to add prompts in this workspace");
 		}
 
-		String insertPrompt = "INSERT INTO PromptTemplate (PromptID, Category, Visibility, Prompt) "
-				+ "VALUES (prompt_seq.NEXTVAL, ?, ?, ?)";
+		String insertPrompt = "INSERT INTO PromptTemplate (PromptID, Category, Visibility, Prompt, UserID) "
+				+ "VALUES (prompt_seq.NEXTVAL, ?, ?, ?, ?)";
 		int newPromptId;
 		try (PreparedStatement stmt = conn.prepareStatement(insertPrompt, new String[]
 		{ "PromptID" }))
@@ -147,6 +147,7 @@ public class LLMEcosystem
 			stmt.setString(1, category);
 			stmt.setString(2, visibility);
 			stmt.setString(3, promptText);
+			stmt.setInt(4, userId);
 			stmt.executeUpdate();
 			try (ResultSet rs = stmt.getGeneratedKeys())
 			{
@@ -221,7 +222,7 @@ public class LLMEcosystem
 	 * ====================================================== 
 	 * Subscription tracking -- functionality 6 
 	 * - updateUserSubscription() 
-	 * - getUserDailyLimit()
+	 * - getUserDailyLimit() 
 	 * - countUserMessagesToday() 
 	 * - insertMessageIfWithinLimit()
 	 */
@@ -321,7 +322,8 @@ public class LLMEcosystem
 	 * @pre
 	 * @post
 	 */
-	public int insertMessageIfWithinLimit(int userId, int conversationId, String senderRole, String content) throws SQLException
+	public int insertMessageIfWithinLimit(int userId, int conversationId, String senderRole, String content)
+			throws SQLException
 	{
 		conn.setAutoCommit(false);
 		try
