@@ -37,7 +37,7 @@ public class LLMEcosystem
 	// private static final String DB_USER = "shalevancleve";
 	// private static final String DB_PASS = "a2532";
 
-	private Connection conn;
+	private static Connection conn;
 	private Scanner scanner;
 
 	public LLMEcosystem()
@@ -83,7 +83,7 @@ public class LLMEcosystem
 	* @return None
 	* @note   when creating user. tier defaults to "Free" with tierID 1
 	*/
-	public static void addUser(String name, String email, String preferredUI) {
+	public void addUser(String name, String email, String preferredUI) {
 		String insertStmt = "INSERT INTO User (Name, Email, preferredUI, DateCreated, TierID) "
 							+ "VALUES (user_seq.NEXTVAL, ?,  ?, ?, SYSDATE, 1)";
 		try {
@@ -110,7 +110,7 @@ public class LLMEcosystem
 	* @return None
 	* @note   dateCreated & UserID fields remain unchanged
 	*/
-	public static void updateUser(int UserID, String newName, String newEmail, String preferredUI, int tierID) throws SQLException {
+	public void updateUser(int UserID, String newName, String newEmail, String preferredUI, int tierID) throws SQLException {
 		String updateQuery = "UPDATE Users SET Name = ?, Email = ?, preferredUI = ?, tierID = ? WHERE UserID = ?";
 		PreparedStatement stmt = conn.prepareStatement(updateQuery);
 		stmt.setString(1,newName); 
@@ -123,7 +123,7 @@ public class LLMEcosystem
 
 
 	// checks if a user has unpaid invoices or an unclosed support ticket
-	public static boolean checkUnpaidInvoicesOrSupportTickets(int UserID) throws SQLException {
+	public boolean checkUnpaidInvoicesOrSupportTickets(int UserID) throws SQLException {
 		String query = "SELECT DISTINCT UserID FROM SupportTicket WHERE UserID = ? AND DateClosed IS NULL" +
 					   " UNION " + 
 					   "SELECT DISTINCT UserID FROM Invoice WHERE UserID = ? AND status = 'unpaid'";
@@ -140,7 +140,7 @@ public class LLMEcosystem
 	*
 	* @note deletion fails if invoices unpaid or open support tickets
 	*/
-	public static void deleteUser(int UserID) throws SQLException {
+	public void deleteUser(int UserID) throws SQLException {
 		boolean failed = checkUnpaidInvoicesOrSupportTickets(UserID);
 		if(failed) {
 			System.out.println("Cannot delete user account: invoice is unpaid or a support ticket is open");
