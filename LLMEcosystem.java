@@ -842,13 +842,35 @@ public class LLMEcosystem
 			switch (sub)
 			{
 			case "1":
-				addUser();
+				 System.out.print("Name: ");
+				 String name = scanner.nextLine();
+				 System.out.print("Email: ");
+				 String email = scanner.nextLine();
+				 System.out.print("Preferred UI: ");
+				 String ui = scanner.nextLine();
+				 addUser(name, email, ui);
+				 System.out.println("User added successfully.");
 				break;
 			case "2":
-				updateUser();
+				 System.out.print("UserID to update: ");
+				 int userId = Integer.parseInt(scanner.nextLine());
+				 System.out.print("New Name (leave blank to keep current): ");
+				 String newName = scanner.nextLine();
+				 System.out.print("New Email (leave blank to keep current): ");
+				 String newEmail = scanner.nextLine();
+				 System.out.print("New Preferred UI (leave blank to keep current): ");
+				 String newUI = scanner.nextLine();
+				 System.out.print("New TierID (leave blank to keep current): ");
+				 String tierInput = scanner.nextLine();
+				 int newTierId = tierInput.isEmpty() ? -1 : Integer.parseInt(tierInput);
+				 updateUser(userId, newName, newEmail, newUI, newTierId);
+				 System.out.println("User updated successfully.");
 				break;
 			case "3":
-				deleteUser();
+				 System.out.print("UserID to delete: ");
+				 int delUserId = Integer.parseInt(scanner.nextLine());
+				 deleteUser(delUserId);
+				 System.out.println("User deleted successfully (if no unpaid invoices or open support tickets).");
 				break;
 			default:
 				System.out.println("Invalid.");
