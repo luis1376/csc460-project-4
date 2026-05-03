@@ -52,29 +52,12 @@ public class LLMEcosystem
 			System.exit(1);
 		}
 	}
-
-	// for generating new primary key IDs, create sequences for each table
-	public static void createSequences() throws SQLException {
-		Statement stmt = conn.createStatement();
-		stmt.executeQuery("CREATE SEQUENCE user_seq START WITH 1 INCREMENT BY 1");
-		stmt.executeQuery("CREATE SEQUENCE tier_seq START WITH 1 INCREMENT BY 1");
-		stmt.executeQuery("CREATE SEQUENCE agent_seq START WITH 1 INCREMENT BY 1");
-		stmt.executeQuery("CREATE SEQUENCE ticket_seq START WITH 1 INCREMENT BY 1");
-		stmt.executeQuery("CREATE SEQUENCE message_seq START WITH 1 INCREMENT BY 1");
-		stmt.executeQuery("CREATE SEQUENCE feedback_seq START WITH 1 INCREMENT BY 1");
-		stmt.executeQuery("CREATE SEQUENCE conversation_seq START WITH 1 INCREMENT BY 1");
-		stmt.executeQuery("CREATE SEQUENCE persona_seq START WITH 1 INCREMENT BY 1");
-		stmt.executeQuery("CREATE SEQUENCE invoice_seq START WITH 1 INCREMENT BY 1");
-		stmt.executeQuery("CREATE SEQUENCE billing_seq START WITH 1 INCREMENT BY 1");
-		stmt.executeQuery("CREATE SEQUENCE workspace_seq START WITH 1 INCREMENT BY 1");
-		stmt.executeQuery("CREATE SEQUENCE prompt_seq START WITH 1 INCREMENT BY 1");
-	}
 	
 	/**======================================================
 	 * Manage user accounts -- functionality 1
 	 * addUser()
 	 * updateUser()
-	 * deleteUser() -- fail if invoices unpaid or open support tickets. Also, delete all messages/conversations
+	 * deleteUser()
 	 */
 	
 	/*
@@ -104,13 +87,34 @@ public class LLMEcosystem
 
 
 	/*
-	* 
+	* Updates a user relation in the database
 	*
 	*
 	*
 	*/
-	public static void updateUser() {
+	public static void updateUser(int UserID) {
 
+	}
+
+	public static boolean checkUnpaidInvoicesOrSupportTickets(int UserID) {
+		String stmt = "SELECT DISTINCT UserID FROM Invoice i, SupportTicket t WHERE t.DateClosed = NULL OR i.status = 'unpaid'";
+		
+
+	}
+	
+	/*
+	* Deletes a user in the database
+	*
+	*
+	* @note deletion fails if invoices unpaid or open support tickets
+	*/
+	public static void deleteUser(int UserID) {
+		boolean failed = checkUnpaidInvoicesOrSupportTickets(int UserID);
+		if(failed) {
+			System.out.println("Cannot delete user account: invoice is unpaid
+								+ or a support ticket is open");
+			return;
+		}
 	}
 	
 	
