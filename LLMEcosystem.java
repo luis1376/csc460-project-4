@@ -52,18 +52,74 @@ public class LLMEcosystem
 			System.exit(1);
 		}
 	}
-	
-	
+
+	// for generating new primary key IDs, create sequences for each table
+	public static void createSequences() throws SQLException {
+		Statement stmt = conn.createStatement();
+		stmt.executeQuery("CREATE SEQUENCE user_seq START WITH 1 INCREMENT BY 1");
+		stmt.executeQuery("CREATE SEQUENCE tier_seq START WITH 1 INCREMENT BY 1");
+		stmt.executeQuery("CREATE SEQUENCE agent_seq START WITH 1 INCREMENT BY 1");
+		stmt.executeQuery("CREATE SEQUENCE ticket_seq START WITH 1 INCREMENT BY 1");
+		stmt.executeQuery("CREATE SEQUENCE message_seq START WITH 1 INCREMENT BY 1");
+		stmt.executeQuery("CREATE SEQUENCE feedback_seq START WITH 1 INCREMENT BY 1");
+		stmt.executeQuery("CREATE SEQUENCE conversation_seq START WITH 1 INCREMENT BY 1");
+		stmt.executeQuery("CREATE SEQUENCE persona_seq START WITH 1 INCREMENT BY 1");
+		stmt.executeQuery("CREATE SEQUENCE invoice_seq START WITH 1 INCREMENT BY 1");
+		stmt.executeQuery("CREATE SEQUENCE billing_seq START WITH 1 INCREMENT BY 1");
+		stmt.executeQuery("CREATE SEQUENCE workspace_seq START WITH 1 INCREMENT BY 1");
+		stmt.executeQuery("CREATE SEQUENCE prompt_seq START WITH 1 INCREMENT BY 1");
+	}
 	
 	/**======================================================
 	 * Manage user accounts -- functionality 1
+	 * addUser()
+	 * updateUser()
+	 * deleteUser() -- fail if invoices unpaid or open support tickets. Also, delete all messages/conversations
 	 */
-	//TODO
 	
+	/*
+	* Adds a new user to the User table
+	*
+	* @param  name, the name of the new user to be added
+	* @param  email, the email address of a user to be added
+	* @param  preferredUI, the UI language of the LLM
+	* @return None
+	* @note   when creating user. tier defaults to "Free" with tierID 1
+	*/
+	public static void addUser(String name, String email, String preferredUI) {
+		String insertStmt = "INSERT INTO User (Name, Email, preferredUI, DateCreated, TierID) "
+							+ "VALUES (user_seq.NEXTVAL, ?,  ?, ?, SYSDATE, 1)";
+		try {
+			PreparedStatement stmt = conn.prepareStatement(insertStmt);
+			stmt.setString(1, name);
+			stmt.setString(2, email);
+			stmt.setString(3, preferredUI);
+			stmt.executeUpdate();
+		}
+		catch (SQLException e) {
+			System.err.println("Error adding user to database");
+			return;
+		}
+	}
+
+
+	/*
+	* 
+	*
+	*
+	*
+	*/
+	public static void updateUser() {
+
+	}
 	
 	
 	/**======================================================
 	 * Handle Conversations & messages -- functionality 2
+	 * startConversation()
+	 * addMessageToConversation()
+	 * updateMessageFeedback()
+	 * deleteConversationsAndMessages
 	 */
 	//TODO
 	
