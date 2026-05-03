@@ -67,26 +67,89 @@ public class LLMEcosystem
 		}
 	}
 
-	
-	
-	/**
-	 * ====================================================== 
+	/**======================================================
 	 * Manage user accounts -- functionality 1
+	 * addUser()
+	 * updateUser()
+	 * deleteUser()
 	 */
-	// TODO
-	private void addUser()
-	{
-		System.out.println("TODO: addUser");
+	
+	/*
+	* Adds a new user to the User table
+	*
+	* @param  name, the name of the new user to be added
+	* @param  email, the email address of a user to be added
+	* @param  preferredUI, the UI language of the LLM
+	* @return None
+	* @note   when creating user. tier defaults to "Free" with tierID 1
+	*/
+	public static void addUser(String name, String email, String preferredUI) {
+		String insertStmt = "INSERT INTO User (Name, Email, preferredUI, DateCreated, TierID) "
+							+ "VALUES (user_seq.NEXTVAL, ?,  ?, ?, SYSDATE, 1)";
+		try {
+			PreparedStatement stmt = conn.prepareStatement(insertStmt);
+			stmt.setString(1, name);
+			stmt.setString(2, email);
+			stmt.setString(3, preferredUI);
+			stmt.executeUpdate();
+		}
+		catch (SQLException e) {
+			System.err.println("Error adding user to database");
+			return;
+		}
 	}
 
-	private void updateUser()
-	{
-		System.out.println("TODO: updateUser");
+	/*
+	* Updates a user's info in the database.
+	*
+	* @param  UserID, the unique id of the user being updated
+	* @param  newName, the (maybe) updated name of a user to insert
+	* @param  newEmail, the (maybe) new email address of a user to insert
+	* @param  preferredUI, the (maybe) new preferred language of the AI for a user
+	* @param  tierID, the (maybe) new model tier a user wants to subscribe to
+	* @return None
+	* @note   dateCreated & UserID fields remain unchanged
+	*/
+	public static void updateUser(int UserID, String newName, String newEmail, String preferredUI, int tierID) throws SQLException {
+		String updateQuery = "UPDATE Users SET Name = ?, Email = ?, preferredUI = ?, tierID = ? WHERE UserID = ?";
+		PreparedStatement stmt = conn.prepareStatement(updateQuery);
+		stmt.setString(1,newName); 
+		stmt.setString(2, newEmail);
+		stmt.setString(3, preferredUI);
+		stmt.setInt(4, tierID);
+		stmt.setInt(5, UserID);
+		stmt.executeUpdate();
 	}
 
-	private void deleteUser()
-	{
-		System.out.println("TODO: deleteUser (check invoices/tickets)");
+
+	// checks if a user has unpaid invoices or an unclosed support ticket
+	public static boolean checkUnpaidInvoicesOrSupportTickets(int UserID) throws SQLException {
+		String query = "SELECT DISTINCT UserID FROM SupportTicket WHERE UserID = ? AND DateClosed IS NULL" +
+					   " UNION " + 
+					   "SELECT DISTINCT UserID FROM Invoice WHERE UserID = ? AND status = 'unpaid'";
+		PreparedStatement stmt = conn.prepareStatement(query);
+		stmt.setInt(1, UserID);
+		stmt.setInt(2, UserID);
+		ResultSet rs = stmt.executeQuery();
+		return rs.next(); // if there is a next, it means userID was found in either condition
+	}
+	
+	/*
+	* Deletes a user in the database
+	*
+	*
+	* @note deletion fails if invoices unpaid or open support tickets
+	*/
+	public static void deleteUser(int UserID) throws SQLException {
+		boolean failed = checkUnpaidInvoicesOrSupportTickets(UserID);
+		if(failed) {
+			System.out.println("Cannot delete user account: invoice is unpaid or a support ticket is open");
+			return;
+		}
+		String deleteStmt = "DELETE FROM Users WHERE UserID = ?";
+		PreparedStatement stmt = conn.prepareStatement(deleteStmt);
+		stmt.setInt(1, UserID);
+		stmt.executeUpdate();
 	}
 
 	/**
