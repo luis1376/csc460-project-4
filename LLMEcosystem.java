@@ -516,10 +516,15 @@ public class LLMEcosystem
 		System.out.print("Enter UserID: ");
 		int userId = Integer.parseInt(scanner.nextLine().trim());
 
-		String sql = "SELECT c.Title, m.Time, m.Content " + "FROM UserBookmarks ub "
-				+ "JOIN Message m ON ub.MessageID = m.MessageID "
-				+ "JOIN Conversation c ON m.ConversationID = c.ConversationID " + "WHERE ub.UserID = ? "
-				+ "ORDER BY m.Time DESC";
+		String sql = """
+			SELECT c.Title, m.Time, m.Content
+			FROM UserBookmarks ub
+			JOIN Message m ON ub.MessageID = m.MessageID
+			JOIN Conversation c ON m.ConversationID = c.ConversationID
+			WHERE ub.UserID = ?
+			ORDER BY m.Time DESC
+		""";
+		
 		try (PreparedStatement stmt = conn.prepareStatement(sql))
 		{
 			stmt.setInt(1, userId);
@@ -551,10 +556,16 @@ public class LLMEcosystem
 	 */
 	private void queryUnpaidInvoices() throws SQLException
 	{
-		String sql = "SELECT u.Email, SUM(i.Amount) AS TotalOwed, MAX(c.DateCreated) AS LastConversationDate "
-				+ "FROM Users u " + "JOIN Invoice i ON u.UserID = i.UserID "
-				+ "LEFT JOIN Conversation c ON u.UserID = c.UserID " + "WHERE i.Status = 'unpaid' "
-				+ "GROUP BY u.Email " + "ORDER BY TotalOwed DESC";
+		String sql = """
+			SELECT u.Email, SUM(i.Amount) AS TotalOwed, MAX(c.DateCreated) AS LastConversationDate
+			FROM Users u
+			JOIN Invoice i ON u.UserID = i.UserID
+			LEFT JOIN Conversation c ON u.UserID = c.UserID
+			WHERE i.Status = 'unpaid'
+			GROUP BY u.Email
+			ORDER BY TotalOwed DESC
+		""";
+		
 		try (Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(sql))
 		{
 			System.out.println("\nUsers with Unpaid Invoices:");
@@ -584,13 +595,21 @@ public class LLMEcosystem
 	 */
 	private void queryMostHelpfulPersona() throws SQLException
 	{
-		String sql = "SELECT p.Name, " + "       COUNT(f.FeedbackID) AS TotalFeedback, "
-				+ "       SUM(CASE WHEN f.Rating >= 8 THEN 1 ELSE 0 END) AS ThumbsUpCount, "
-				+ "       ROUND(100.0 * SUM(CASE WHEN f.Rating >= 8 THEN 1 ELSE 0 END) / COUNT(f.FeedbackID), 2) AS Percentage "
-				+ "FROM Persona p " + "JOIN Conversation c ON p.PersonaID = c.PersonaID AND p.VersionID = c.VersionID "
-				+ "JOIN Message m ON c.ConversationID = m.ConversationID "
-				+ "JOIN Feedback f ON m.MessageID = f.MessageID " + "WHERE p.DeletedStatus = 0 " + "GROUP BY p.Name "
-				+ "HAVING COUNT(f.FeedbackID) > 0 " + "ORDER BY Percentage DESC " + "FETCH FIRST 1 ROW ONLY";
+		String sql = """
+			SELECT p.Name,
+       			COUNT(f.FeedbackID) AS TotalFeedback,
+       			SUM(f.IsThumbsUp) AS ThumbsUpCount,
+       			ROUND(100.0 * SUM(f.IsThumbsUp) / COUNT(f.FeedbackID), 2) AS Percentage
+			FROM Persona p
+			JOIN Conversation c ON p.PersonaID = c.PersonaID AND p.VersionID = c.VersionID
+			JOIN Message m ON c.ConversationID = m.ConversationID
+			JOIN Feedback f ON m.MessageID = f.MessageID
+			WHERE p.DeletedStatus = 0
+			GROUP BY p.Name
+			HAVING COUNT(f.FeedbackID) > 0
+			ORDER BY Percentage DESC
+			FETCH FIRST 1 ROW ONLY;
+		""";
 		try (Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(sql))
 		{
 			System.out.println("\nMost Helpful Persona:");
@@ -620,10 +639,16 @@ public class LLMEcosystem
 		System.out.print("Enter UserID to see workspaces where they are Admin: ");
 		int userId = Integer.parseInt(scanner.nextLine().trim());
 
-		String sql = "SELECT w.Name AS WorkspaceName, COUNT(uw2.UserID) AS MemberCount " + "FROM Workspace w "
-				+ "JOIN UserWorkspace uwAdmin ON w.WorkspaceID = uwAdmin.WorkspaceID "
-				+ "LEFT JOIN UserWorkspace uw2 ON w.WorkspaceID = uw2.WorkspaceID "
-				+ "WHERE uwAdmin.UserID = ? AND uwAdmin.Role = 'Admin' " + "GROUP BY w.Name " + "ORDER BY w.Name";
+		String sql = """
+			SELECT w.Name AS WorkspaceName, COUNT(uw2.UserID) AS MemberCount
+			FROM Workspace w
+			JOIN UserWorkspace uwAdmin ON w.WorkspaceID = uwAdmin.WorkspaceID
+			LEFT JOIN UserWorkspace uw2 ON w.WorkspaceID = uw2.WorkspaceID
+			WHERE uwAdmin.UserID = ? AND uwAdmin.Role = 'Admin'
+			GROUP BY w.Name
+			ORDER BY w.Name
+		""";
+
 		try (PreparedStatement stmt = conn.prepareStatement(sql))
 		{
 			stmt.setInt(1, userId);

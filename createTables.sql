@@ -93,7 +93,7 @@ CREATE TABLE Message (
 
 CREATE TABLE Feedback (
     FeedbackID    INTEGER PRIMARY KEY,
-    Rating        INTEGER CHECK (Rating BETWEEN 1 AND 10),
+    IsThumbsUp    INTEGER NOT NULL CHECK (IsThumbsUp IN (0,1)),   -- 1="thumbs up", 0="thumbs down"
     Text          VARCHAR2(500),
     Date          DATE NOT NULL,
     UserID        INTEGER NOT NULL REFERENCES Users(UserID),
