@@ -85,21 +85,41 @@ public class LLMEcosystem
 		}
 	}
 
-
 	/*
-	* Updates a user relation in the database
+	* Updates a user's info in the database.
 	*
-	*
-	*
+	* @param  UserID, the unique id of the user being updated
+	* @param  newName, the (maybe) updated name of a user to insert
+	* @param  newEmail, the (maybe) new email address of a user to insert
+	* @param  preferredUI, the (maybe) new preferred language of the AI for a user
+	* @param  tierID, the (maybe) new model tier a user wants to subscribe to
+	* @return None
+	* @note   dateCreated & UserID fields remain unchanged
 	*/
-	public static void updateUser(int UserID) {
-
+	public static void updateUser(int UserID, String newName, String newEmail, String preferredUI, int tierID) throws SQLException {
+		String updateQuery = "UPDATE Users SET Name = ?, Email = ?, preferredUI = ?, tierID = ? WHERE UserID = ?";
+		PreparedStatement stmt = conn.prepareStatement(updateQuery);
+		stmt.setString(1,newName); 
+		stmt.setString(2, newEmail);
+		stmt.setString(3, preferredUI);
+		stmt.setInt(4, tierID);
+		stmt.setInt(5, UserID);
+		stmt.executeUpdate()
 	}
 
-	public static boolean checkUnpaidInvoicesOrSupportTickets(int UserID) {
-		String stmt = "SELECT DISTINCT UserID FROM Invoice i, SupportTicket t WHERE t.DateClosed = NULL OR i.status = 'unpaid'";
-		
 
+	// checks if a user has unpaid invoices or an unclosed support ticket
+	public static boolean checkUnpaidInvoicesOrSupportTickets(int UserID) throws SQLException {
+		String query = "SELECT DISTINCT UserID FROM Invoice i, SupportTicket t WHERE t.DateClosed IS NULL OR i.status = 'unpaid'";
+		Statement stmt = conn.createStatement();
+		ResultSet rs = stmt.executeQuery(query);
+		if(rs != null) {
+			while(rs.next()) {
+				if(rs.getInt() == UserID)
+					return true;
+			}
+		}
+		return false;
 	}
 	
 	/*
@@ -108,13 +128,17 @@ public class LLMEcosystem
 	*
 	* @note deletion fails if invoices unpaid or open support tickets
 	*/
-	public static void deleteUser(int UserID) {
+	public static void deleteUser(int UserID) throws SQLException {
 		boolean failed = checkUnpaidInvoicesOrSupportTickets(int UserID);
 		if(failed) {
 			System.out.println("Cannot delete user account: invoice is unpaid
 								+ or a support ticket is open");
 			return;
 		}
+		String deleteStmt = "DELETE FROM Users WHERE UserID = ?";
+		PreparedStatement stmt = conn.prepareStatement(deleteStmt);
+		stmt.setInt(1, UserID);
+		stmt.executeUpdate();
 	}
 	
 	
