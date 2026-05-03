@@ -33,19 +33,32 @@ import java.util.Scanner;
 public class LLMEcosystem
 {
 
-	private static final String DB_URL = "jdbc:oracle:thin:@aloe.cs.arizona.edu:1521:oracle";
-	private static final String DB_USER = "shalevancleve";
-	private static final String DB_PASS = "a2532";
+	// private static final String DB_URL = "jdbc:oracle:thin:@aloe.cs.arizona.edu:1521:oracle";
+	// private static final String DB_USER = "shalevancleve";
+	// private static final String DB_PASS = "a2532";
 
 	private Connection conn;
+	private Scanner scanner;
 
 	public LLMEcosystem()
 	{
+		scanner = new Scanner(System.in);
+		connectToDatabase();
+	}
+
+	private void connectToDatabase()
+	{
+		System.out.print("Oracle username: ");
+		String user = scanner.nextLine().trim();
+		System.out.print("Password: ");
+		String pass = scanner.nextLine().trim();
+
+		String url = "jdbc:oracle:thin:@aloe.cs.arizona.edu:1521:oracle";
 		try
 		{
 			Class.forName("oracle.jdbc.OracleDriver");
-			conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASS);
-			System.out.println("Connected to Oracle DB");
+			conn = DriverManager.getConnection(url, user, pass);
+			System.out.println("Connected to Oracle DB successfully.\n");
 		}
 		catch (Exception e)
 		{
@@ -54,33 +67,90 @@ public class LLMEcosystem
 		}
 	}
 
+	
+	
 	/**
 	 * ====================================================== 
 	 * Manage user accounts -- functionality 1
 	 */
 	// TODO
+	private void addUser()
+	{
+		System.out.println("TODO: addUser");
+	}
+
+	private void updateUser()
+	{
+		System.out.println("TODO: updateUser");
+	}
+
+	private void deleteUser()
+	{
+		System.out.println("TODO: deleteUser (check invoices/tickets)");
+	}
 
 	/**
 	 * ====================================================== 
 	 * Handle Conversations & messages -- functionality 2
 	 */
 	// TODO
+	private void startConversation()
+	{
+		System.out.println("TODO: startConversation");
+	}
 
+	private void addMessageToConversation()
+	{
+		System.out.println("TODO: addMessageToConversation");
+	}
+
+	private void updateMessageFeedback()
+	{
+		System.out.println("TODO: updateMessageFeedback");
+	}
+
+	
+	
 	/**
 	 * ====================================================== 
 	 * workspace organization -- functionality 3
 	 */
 	// TODO
+	private void createWorkspace()
+	{
+		System.out.println("TODO: createWorkspace");
+	}
+
+	private void modifyWorkspace()
+	{
+		System.out.println("TODO: modifyWorkspace");
+	}
+
+	private void moveConversationToWorkspace()
+	{
+		System.out.println("TODO: moveConversationToWorkspace");
+	}
 
 	/**
 	 * ====================================================== 
 	 * Persona management -- functionality 4
 	 */
 	// TODO
+	private void createPersona()
+	{
+		System.out.println("TODO: createPersona");
+	}
 
+	private void deletePersona()
+	{
+		System.out.println("TODO: deletePersona (check active conversations)");
+	}
+
+	
+	
 	/**
 	 * ====================================================== 
-	 * Prompt library -- functionality 5 
+	 * Prompt library -- functionality 5
 	 * - hasPromptEditPermission() 
 	 * - addPrompt() 
 	 * - updatePrompt()
@@ -131,7 +201,8 @@ public class LLMEcosystem
 	 * @pre
 	 * @post
 	 */
-	public int addPrompt(int workspaceId, int userId, String category, String visibility, String promptText) throws SQLException
+	public int addPrompt(int workspaceId, int userId, String category, String visibility, String promptText)
+			throws SQLException
 	{
 		if (!hasPromptEditPermission(userId, workspaceId))
 		{
@@ -186,9 +257,11 @@ public class LLMEcosystem
 	 * @pre
 	 * @post
 	 */
-	public boolean updatePrompt(int promptId, int userId, String newCategory, String newVisibility, String newPromptText) throws SQLException
+	public boolean updatePrompt(
+			int promptId, int userId, String newCategory, String newVisibility, String newPromptText
+	) throws SQLException
 	{
-		// Find which workspace owns this prompt
+		// find which workspace owns this prompt
 		String findWorkspace = "SELECT WorkspaceID FROM SpaceTemplates WHERE PromptID = ?";
 		int workspaceId;
 		try (PreparedStatement stmt = conn.prepareStatement(findWorkspace))
@@ -383,117 +456,582 @@ public class LLMEcosystem
 		}
 	}
 
+	
+	
 	/**
 	 * ====================================================== 
 	 * Billing operations -- functionality 7
 	 */
 	// TODO
+	private void generateInvoice()
+	{
+		System.out.println("TODO: generateInvoice");
+	}
+
+	private void markInvoicePaid()
+	{
+		System.out.println("TODO: markInvoicePaid");
+	}
 
 	/**
 	 * ====================================================== 
 	 * Support Ticket Lifecycle -- functionality 8
 	 */
 	// TODO
+	private void createSupportTicket()
+	{
+		System.out.println("TODO: createSupportTicket");
+	}
+
+	private void assignTicketToAgent()
+	{
+		System.out.println("TODO: assignTicketToAgent");
+	}
+
+	private void updateTicketResolution()
+	{
+		System.out.println("TODO: updateTicketResolution");
+	}
+
+	
+	
+	/*
+	 * Required queries
+	 * - queryBookmarkedMessages()
+	 * - queryUnpaidInvoices()
+	 * - queryMostHelpfulPersona()
+	 * - queryWorkspaceMembers()
+	 */
+	/**
+	 * queryBookmarkedMessages()
+	 * For a given User, list all their Bookmarked messages across all conversations, including the conversation title and the timestamp.
+	 * 
+	 * @return N/A
+	 * 
+	 * @pre
+	 * @post
+	 */
+	private void queryBookmarkedMessages() throws SQLException
+	{
+		System.out.print("Enter UserID: ");
+		int userId = Integer.parseInt(scanner.nextLine().trim());
+
+		String sql = "SELECT c.Title, m.Time, m.Content " + "FROM UserBookmarks ub "
+				+ "JOIN Message m ON ub.MessageID = m.MessageID "
+				+ "JOIN Conversation c ON m.ConversationID = c.ConversationID " + "WHERE ub.UserID = ? "
+				+ "ORDER BY m.Time DESC";
+		try (PreparedStatement stmt = conn.prepareStatement(sql))
+		{
+			stmt.setInt(1, userId);
+			try (ResultSet rs = stmt.executeQuery())
+			{
+				System.out.println("\nBookmarked Messages:");
+				System.out.println("--------------------------------------------------");
+				boolean found = false;
+				while (rs.next())
+				{
+					found = true;
+					System.out.printf("Conversation: %s\nTimestamp: %s\nMessage: %s\n\n", rs.getString("Title"),
+							rs.getTimestamp("Time"), rs.getString("Content"));
+				}
+				if (!found)
+					System.out.println("No bookmarked messages for this user.");
+			}
+		}
+	}
 
 	/**
-	 * ====================================================== 
-	 * simple test ui menu -- replace with actual text based ui later on
+	 * queryUnpaidInvoices()
+	 * List all users who have “Unpaid” invoices, including their email, the total amount owed, and the date of their last conversation.
+	 * 
+	 * @return N/A
+	 * 
+	 * @pre
+	 * @post
 	 */
-	public void runTestMenu()
+	private void queryUnpaidInvoices() throws SQLException
 	{
-		Scanner sc = new Scanner(System.in);
+		String sql = "SELECT u.Email, SUM(i.Amount) AS TotalOwed, MAX(c.DateCreated) AS LastConversationDate "
+				+ "FROM Users u " + "JOIN Invoice i ON u.UserID = i.UserID "
+				+ "LEFT JOIN Conversation c ON u.UserID = c.UserID " + "WHERE i.Status = 'unpaid' "
+				+ "GROUP BY u.Email " + "ORDER BY TotalOwed DESC";
+		try (Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(sql))
+		{
+			System.out.println("\nUsers with Unpaid Invoices:");
+			System.out.printf("%-30s %15s %20s\n", "Email", "Total Owed", "Last Conversation Date");
+			System.out.println("--------------------------------------------------------------------");
+			boolean found = false;
+			while (rs.next())
+			{
+				found = true;
+				System.out.printf("%-30s $%14.2f %20s\n", rs.getString("Email"), rs.getDouble("TotalOwed"),
+						rs.getDate("LastConversationDate") == null ? "Never" : rs.getDate("LastConversationDate"));
+			}
+			if (!found)
+				System.out.println("No unpaid invoices.");
+		}
+	}
+
+	/**
+	 * queryMostHelpfulPersona()
+	 * Identify the “Most Helpful” Persona: List the persona name that has received the highest percentage of “Thumbs Up” feedback across all conversations linked to it
+	 * Note: feedback table stores Rating 1-10 so for now I'm just considering "Thumbs Up" as Rating >= 8
+	 * 
+	 * @return N/A
+	 * 
+	 * @pre
+	 * @post
+	 */
+	private void queryMostHelpfulPersona() throws SQLException
+	{
+		String sql = "SELECT p.Name, " + "       COUNT(f.FeedbackID) AS TotalFeedback, "
+				+ "       SUM(CASE WHEN f.Rating >= 8 THEN 1 ELSE 0 END) AS ThumbsUpCount, "
+				+ "       ROUND(100.0 * SUM(CASE WHEN f.Rating >= 8 THEN 1 ELSE 0 END) / COUNT(f.FeedbackID), 2) AS Percentage "
+				+ "FROM Persona p " + "JOIN Conversation c ON p.PersonaID = c.PersonaID AND p.VersionID = c.VersionID "
+				+ "JOIN Message m ON c.ConversationID = m.ConversationID "
+				+ "JOIN Feedback f ON m.MessageID = f.MessageID " + "WHERE p.DeletedStatus = 0 " + "GROUP BY p.Name "
+				+ "HAVING COUNT(f.FeedbackID) > 0 " + "ORDER BY Percentage DESC " + "FETCH FIRST 1 ROW ONLY";
+		try (Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(sql))
+		{
+			System.out.println("\nMost Helpful Persona:");
+			if (rs.next())
+			{
+				System.out.printf("Name: %s\nThumbs Up Percentage: %.2f%% (based on %d ratings)\n",
+						rs.getString("Name"), rs.getDouble("Percentage"), rs.getInt("TotalFeedback"));
+			}
+			else
+			{
+				System.out.println("No feedback data available.");
+			}
+		}
+	}
+
+	/**
+	 * queryWorkspaceMembers()
+	 * Additional non-trivial query of our own design -- List workspaces where a given user has Admin role, along with the number of members in that workspace.
+	 * 
+	 * @return N/A
+	 * 
+	 * @pre
+	 * @post
+	 */
+	private void queryWorkspaceMembers() throws SQLException
+	{
+		System.out.print("Enter UserID to see workspaces where they are Admin: ");
+		int userId = Integer.parseInt(scanner.nextLine().trim());
+
+		String sql = "SELECT w.Name AS WorkspaceName, COUNT(uw2.UserID) AS MemberCount " + "FROM Workspace w "
+				+ "JOIN UserWorkspace uwAdmin ON w.WorkspaceID = uwAdmin.WorkspaceID "
+				+ "LEFT JOIN UserWorkspace uw2 ON w.WorkspaceID = uw2.WorkspaceID "
+				+ "WHERE uwAdmin.UserID = ? AND uwAdmin.Role = 'Admin' " + "GROUP BY w.Name " + "ORDER BY w.Name";
+		try (PreparedStatement stmt = conn.prepareStatement(sql))
+		{
+			stmt.setInt(1, userId);
+			try (ResultSet rs = stmt.executeQuery())
+			{
+				System.out.printf("\nWorkspaces where User %d is Admin:\n", userId);
+				System.out.printf("%-30s %15s\n", "Workspace Name", "Member Count");
+				System.out.println("---------------------------------------------");
+				boolean found = false;
+				while (rs.next())
+				{
+					found = true;
+					System.out.printf("%-30s %15d\n", rs.getString("WorkspaceName"), rs.getInt("MemberCount"));
+				}
+				if (!found)
+					System.out.println("User is not an Admin of any workspace.");
+			}
+		}
+	}
+
+	
+	
+	/**
+	 * Current UI for testing -- likely will need changing with other functionality
+	 * implementations
+	 */
+	public void runMainMenu()
+	{
 		while (true)
 		{
-			System.out.println("\n===== MENU =====");
-			System.out.println("1. Add Prompt");
-			System.out.println("2. Update Prompt");
-			System.out.println("3. Update Subscription Tier");
-			System.out.println("4. Insert Message (with limit check)");
-			System.out.println("5. Exit");
+			System.out.println("\n" + "=".repeat(60));
+			System.out.println("LLM USER-FACING ECOSYSTEM MANAGEMENT SYSTEM");
+			System.out.println("=".repeat(60));
+			System.out.println("--- FUNCTIONALITIES ---");
+			System.out.println("1.  Manage User Accounts (add/update/delete)");
+			System.out.println("2.  Conversations & Messages");
+			System.out.println("3.  Workspace Organization");
+			System.out.println("4.  Persona Management");
+			System.out.println("5.  Prompt Library (add/update)");
+			System.out.println("6.  Subscription Tracking (update tier, message limit)");
+			System.out.println("7.  Billing Operations");
+			System.out.println("8.  Support Ticket Lifecycle");
+			System.out.println("\n--- REQUIRED QUERIES ---");
+			System.out.println("9.  Query 1: Bookmarked messages for a user");
+			System.out.println("10. Query 2: Users with unpaid invoices");
+			System.out.println("11. Query 3: Most helpful persona");
+			System.out.println("12. Query 4: Custom query (workspace members for admin)");
+			System.out.println("0.  Exit");
 			System.out.print("Choice: ");
-			String choice = sc.nextLine().trim();
 
+			String choice = scanner.nextLine().trim();
 			try
 			{
 				switch (choice)
 				{
 				case "1":
-					System.out.print("WorkspaceID: ");
-					int ws = Integer.parseInt(sc.nextLine());
-					System.out.print("UserID: ");
-					int uid = Integer.parseInt(sc.nextLine());
-					System.out.print("Category: ");
-					String cat = sc.nextLine();
-					System.out.print("Visibility (Public/Private): ");
-					String vis = sc.nextLine();
-					System.out.print("Prompt text: ");
-					String txt = sc.nextLine();
-					int newId = addPrompt(ws, uid, cat, vis, txt);
-					System.out.println("Prompt added with ID: " + newId);
+					userAccountSubMenu();
 					break;
 				case "2":
-					System.out.print("PromptID: ");
-					int pid = Integer.parseInt(sc.nextLine());
-					System.out.print("UserID: ");
-					int uid2 = Integer.parseInt(sc.nextLine());
-					System.out.print("New Category: ");
-					String cat2 = sc.nextLine();
-					System.out.print("New Visibility: ");
-					String vis2 = sc.nextLine();
-					System.out.print("New Prompt text: ");
-					String txt2 = sc.nextLine();
-					boolean ok = updatePrompt(pid, uid2, cat2, vis2, txt2);
-					System.out.println(ok ? "Updated" : "Update failed");
+					conversationSubMenu();
 					break;
 				case "3":
-					System.out.print("UserID: ");
-					int uid3 = Integer.parseInt(sc.nextLine());
-					System.out.print("New TierID: ");
-					int tid = Integer.parseInt(sc.nextLine());
-					boolean ok2 = updateUserSubscription(uid3, tid);
-					System.out.println(ok2 ? "Subscription updated" : "Update failed");
+					workspaceSubMenu();
 					break;
 				case "4":
-					System.out.print("UserID: ");
-					int uid4 = Integer.parseInt(sc.nextLine());
-					System.out.print("ConversationID: ");
-					int cid = Integer.parseInt(sc.nextLine());
-					System.out.print("SenderRole (user/assistant): ");
-					String role = sc.nextLine();
-					System.out.print("Message content: ");
-					String msg = sc.nextLine();
-					int msgId = insertMessageIfWithinLimit(uid4, cid, role, msg);
-					if (msgId == -1)
-						System.out.println("Daily message limit exceeded. Message rejected.");
-					else
-						System.out.println("Message inserted with ID: " + msgId);
+					personaSubMenu();
 					break;
 				case "5":
-					System.out.println("Exiting.");
-					sc.close();
+					promptLibrarySubMenu();
+					break;
+				case "6":
+					subscriptionSubMenu();
+					break;
+				case "7":
+					billingSubMenu();
+					break;
+				case "8":
+					supportSubMenu();
+					break;
+				case "9":
+					queryBookmarkedMessages();
+					break;
+				case "10":
+					queryUnpaidInvoices();
+					break;
+				case "11":
+					queryMostHelpfulPersona();
+					break;
+				case "12":
+					queryWorkspaceMembers();
+					break;
+				case "0":
+					System.out.println("Exiting...");
+					conn.close();
 					return;
 				default:
-					System.out.println("Invalid choice");
+					System.out.println("Invalid choice. Please enter 0-12.");
 				}
 			}
 			catch (Exception e)
 			{
 				System.err.println("Error: " + e.getMessage());
+				try
+				{
+					conn.rollback();
+				}
+				catch (SQLException ex)
+				{
+					//ignore 
+				}
 			}
+			System.out.println("\nPress Enter to continue...");
+			scanner.nextLine();
+		}
+	}
+
+	// sub-menus
+	private void userAccountSubMenu()
+	{
+		System.out.println("\n--- User Account Management ---");
+		System.out.println("1. Add User");
+		System.out.println("2. Update User");
+		System.out.println("3. Delete User");
+		System.out.print("Choice: ");
+		String sub = scanner.nextLine().trim();
+		try
+		{
+			switch (sub)
+			{
+			case "1":
+				addUser();
+				break;
+			case "2":
+				updateUser();
+				break;
+			case "3":
+				deleteUser();
+				break;
+			default:
+				System.out.println("Invalid.");
+			}
+		}
+		catch (Exception e)
+		{
+			System.err.println("Error: " + e.getMessage());
+		}
+	}
+
+	private void conversationSubMenu()
+	{
+		System.out.println("\n--- Conversations & Messages ---");
+		System.out.println("1. Start New Conversation");
+		System.out.println("2. Add Message to Conversation");
+		System.out.println("3. Update Message Feedback");
+		System.out.print("Choice: ");
+		String sub = scanner.nextLine().trim();
+		try
+		{
+			switch (sub)
+			{
+			case "1":
+				startConversation();
+				break;
+			case "2":
+				addMessageToConversation();
+				break;
+			case "3":
+				updateMessageFeedback();
+				break;
+			default:
+				System.out.println("Invalid.");
+			}
+		}
+		catch (Exception e)
+		{
+			System.err.println("Error: " + e.getMessage());
+		}
+	}
+
+	private void workspaceSubMenu()
+	{
+		System.out.println("\n--- Workspace Organization ---");
+		System.out.println("1. Create Workspace");
+		System.out.println("2. Modify Workspace");
+		System.out.println("3. Move Conversation to Workspace");
+		System.out.print("Choice: ");
+		String sub = scanner.nextLine().trim();
+		try
+		{
+			switch (sub)
+			{
+			case "1":
+				createWorkspace();
+				break;
+			case "2":
+				modifyWorkspace();
+				break;
+			case "3":
+				moveConversationToWorkspace();
+				break;
+			default:
+				System.out.println("Invalid.");
+			}
+		}
+		catch (Exception e)
+		{
+			System.err.println("Error: " + e.getMessage());
+		}
+	}
+
+	private void personaSubMenu()
+	{
+		System.out.println("\n--- Persona Management ---");
+		System.out.println("1. Create Persona");
+		System.out.println("2. Delete Persona");
+		System.out.print("Choice: ");
+		String sub = scanner.nextLine().trim();
+		try
+		{
+			switch (sub)
+			{
+			case "1":
+				createPersona();
+				break;
+			case "2":
+				deletePersona();
+				break;
+			default:
+				System.out.println("Invalid.");
+			}
+		}
+		catch (Exception e)
+		{
+			System.err.println("Error: " + e.getMessage());
+		}
+	}
+
+	private void promptLibrarySubMenu()
+	{
+		System.out.println("\n--- Prompt Library ---");
+		System.out.println("1. Add Prompt Template");
+		System.out.println("2. Update Prompt Template");
+		System.out.print("Choice: ");
+		String sub = scanner.nextLine().trim();
+		try
+		{
+			if (sub.equals("1"))
+			{
+				System.out.print("WorkspaceID: ");
+				int ws = Integer.parseInt(scanner.nextLine());
+				System.out.print("UserID: ");
+				int uid = Integer.parseInt(scanner.nextLine());
+				System.out.print("Category: ");
+				String cat = scanner.nextLine();
+				System.out.print("Visibility (private/shared): ");
+				String vis = scanner.nextLine();
+				if (!vis.equals("private") && !vis.equals("shared"))
+				{
+					System.out.println("Visibility must be 'private' or 'shared'.");
+					return;
+				}
+				System.out.print("Prompt text: ");
+				String txt = scanner.nextLine();
+				int newId = addPrompt(ws, uid, cat, vis, txt);
+				System.out.println("Prompt added with ID: " + newId);
+			}
+			else if (sub.equals("2"))
+			{
+				System.out.print("PromptID: ");
+				int pid = Integer.parseInt(scanner.nextLine());
+				System.out.print("UserID: ");
+				int uid = Integer.parseInt(scanner.nextLine());
+				System.out.print("New Category: ");
+				String cat = scanner.nextLine();
+				System.out.print("New Visibility (private/shared): ");
+				String vis = scanner.nextLine();
+				if (!vis.equals("private") && !vis.equals("shared"))
+				{
+					System.out.println("Visibility must be 'private' or 'shared'.");
+					return;
+				}
+				System.out.print("New Prompt text: ");
+				String txt = scanner.nextLine();
+				boolean ok = updatePrompt(pid, uid, cat, vis, txt);
+				System.out.println(ok ? "Updated" : "Update failed");
+			}
+			else
+			{
+				System.out.println("Invalid choice.");
+			}
+		}
+		catch (Exception e)
+		{
+			System.err.println("Error: " + e.getMessage());
+		}
+	}
+
+	private void subscriptionSubMenu()
+	{
+		System.out.println("\n--- Subscription Tracking ---");
+		System.out.println("1. Update User Subscription Tier");
+		System.out.println("2. Insert Message (with daily limit check)");
+		System.out.print("Choice: ");
+		String sub = scanner.nextLine().trim();
+		try
+		{
+			if (sub.equals("1"))
+			{
+				System.out.print("UserID: ");
+				int uid = Integer.parseInt(scanner.nextLine());
+				System.out.print("New TierID: ");
+				int tid = Integer.parseInt(scanner.nextLine());
+				boolean ok = updateUserSubscription(uid, tid);
+				System.out.println(ok ? "Subscription updated" : "Update failed");
+			}
+			else if (sub.equals("2"))
+			{
+				System.out.print("UserID: ");
+				int uid = Integer.parseInt(scanner.nextLine());
+				System.out.print("ConversationID: ");
+				int cid = Integer.parseInt(scanner.nextLine());
+				System.out.print("SenderRole (User/AI): ");
+				String role = scanner.nextLine();
+				if (!role.equals("User") && !role.equals("AI"))
+				{
+					System.out.println("SenderRole must be 'User' or 'AI'.");
+					return;
+				}
+				System.out.print("Message content: ");
+				String msg = scanner.nextLine();
+				int msgId = insertMessageIfWithinLimit(uid, cid, role, msg);
+				if (msgId == -1)
+					System.out.println("Daily message limit exceeded. Message rejected.");
+				else
+					System.out.println("Message inserted with ID: " + msgId);
+			}
+			else
+			{
+				System.out.println("Invalid choice.");
+			}
+		}
+		catch (Exception e)
+		{
+			System.err.println("Error: " + e.getMessage());
+		}
+	}
+
+	private void billingSubMenu()
+	{
+		System.out.println("\n--- Billing Operations ---");
+		System.out.println("1. Generate Invoice");
+		System.out.println("2. Mark Invoice as Paid");
+		System.out.print("Choice: ");
+		String sub = scanner.nextLine().trim();
+		try
+		{
+			switch (sub)
+			{
+			case "1":
+				generateInvoice();
+				break;
+			case "2":
+				markInvoicePaid();
+				break;
+			default:
+				System.out.println("Invalid.");
+			}
+		}
+		catch (Exception e)
+		{
+			System.err.println("Error: " + e.getMessage());
+		}
+	}
+
+	private void supportSubMenu()
+	{
+		System.out.println("\n--- Support Ticket Lifecycle ---");
+		System.out.println("1. Create Ticket");
+		System.out.println("2. Assign Ticket to Agent");
+		System.out.println("3. Update Ticket Resolution Status");
+		System.out.print("Choice: ");
+		String sub = scanner.nextLine().trim();
+		try
+		{
+			switch (sub)
+			{
+			case "1":
+				createSupportTicket();
+				break;
+			case "2":
+				assignTicketToAgent();
+				break;
+			case "3":
+				updateTicketResolution();
+				break;
+			default:
+				System.out.println("Invalid.");
+			}
+		}
+		catch (Exception e)
+		{
+			System.err.println("Error: " + e.getMessage());
 		}
 	}
 
 	public static void main(String[] args)
 	{
 		LLMEcosystem app = new LLMEcosystem();
-		app.runTestMenu();
-		try
-		{
-			app.conn.close();
-		}
-		catch (SQLException e)
-		{
-			e.printStackTrace();
-		}
+		app.runMainMenu();
 	}
 }
