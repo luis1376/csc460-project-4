@@ -178,20 +178,261 @@ public class LLMEcosystem
 	 * ====================================================== 
 	 * workspace organization -- functionality 3
 	 */
-	// TODO
-	private void createWorkspace()
-	{
-		System.out.println("TODO: createWorkspace");
+	//
+	private int getAvailableWorkspaceID(){
+		//get next ID from sequence
+		String sq = "SELECT workspace_seq.NEXTVAL from dual";
+		try{
+			Statement s = conn.createStatement();
+			ResultSet r = s.executeQuery(sq);
+			
+			//get the number
+			if(r.next()){
+				int nexID = r.getInt(1);
+				r.close();
+				s.close();
+				return nexID;
+			}
+
+			r.close();
+			s.close();
+		} catch(SQLException e){
+			System.err.println("Error getting next available WorkspaceID");
+		}
+
+		return -1;
 	}
 
-	private void modifyWorkspace()
-	{
-		System.out.println("TODO: modifyWorkspace");
+	private void createWorkspace(){
+		try{
+			System.out.println("Enter userID of the creator:");
+			int userID = Integer.parseInt(scanner.nextLine().trim());
+
+			System.out.println("Enter Workspace name:");
+			String name = scanner.nextLine().trim();
+
+			System.out.println("Enter Visibility:");
+			String visibility = scanner.nextLine().trim();
+
+			if(!visibility.equals("shared")&& 
+						!visibility.equals("private")){
+				System.out.println("Options for Visibility are: shared, private");
+			
+				return;
+			}
+			int workspaceID = getAvailableWorkspaceID();
+
+			if(workspaceID == -1){
+				System.out.println("Something went wrong creating workspace as workspaceID " +
+							"was not generated");
+				
+				return;
+			}
+			
+			//we'll do two inserts, so either both work or none do.
+			conn.setAutoCommit(false);
+
+			//first one
+			String insertWorkspace = "INSERT INTO Workspace (WorkspaceID, Name, Visibility, DateCreated) " +
+										"VALUES(?, ?, ?, CURRENT_DATE)";
+			PreparedStatement st1 = conn.prepareStatement(insertWorkspace);
+
+			//? workspaceID
+			st1.setInt(1, workspaceID);
+			
+			//? name
+			st1.setString(2, name);
+
+			//? visibility
+			st1.setString(3, visibility);
+
+			st1.executeUpdate();
+
+			st1.close();
+
+			//second one
+			String insertUserWorkspace = "INSERT INTO UserWorkspace (UserID, WorkspaceID, DateJoined, Role) " +
+										"VALUES(?, ?, CURRENT_DATE, 'Admin')";
+
+			PreparedStatement st2 = conn.prepareStatement(insertUserWorkspace);
+
+			//? userID
+			st2.setInt(1, userID);
+
+			//? workspaceID
+			st2.setInt(2, workspaceID);
+			
+			st2.executeUpdate();
+			st2.close();
+
+			conn.commit();
+
+			//reactivate autocomit
+			conn.setAutoCommit(true);
+			
+			System.out.println("Workspace created. WorkspaceID: " + workspaceID);
+			System.out.println("UserID: " + userID);
+		
+		//user did not use numbers
+		} catch(NumberFormatException e){
+			System.out.println("IDs must be integers");
+	
+		} catch(SQLException e){
+
+			try{
+				//an insert did not work, so go back in the changes
+				conn.rollback();
+
+				conn.setAutoCommit(true);
+			}
+
+			catch(SQLException rollingbackE){
+				System.err.println("error rolling back.");
+			}
+
+			System.err.println("Error creating the workspace.");
+		}
 	}
 
-	private void moveConversationToWorkspace()
-	{
-		System.out.println("TODO: moveConversationToWorkspace");
+	private void modifyWorkspace(){
+		try{
+			System.out.println("Enter WorkspaceId to modify:");
+			int wsID = Integer.parseInt(scanner.nextLine().trim());
+			
+			System.out.println("Enter the new Workspace name:");
+			String newName = scanner.nextLine().trim();
+			
+			System.out.println("Enter the new Visibility:");
+			String newV = scanner.nextLine().trim();
+			
+			if(!newV.equals("shared")&& !newV.equals("private")){
+				System.out.println("Options for Visibility are: shared, private");
+				return;
+			}
+
+			String updateWorkspace = 
+				"UPDATE Workspace " + 
+				"SET Name = ?, Visibility = ? " +
+				"WHERE WorkspaceID = ?";
+
+			PreparedStatement st = conn.prepareStatement(updateWorkspace);
+
+			//? = new name
+			st.setString(1, newName);
+
+			//? = new Visibility
+			st.setString(2, newV);
+
+			//? = workspaceId to modify
+			st.setInt(3, wsID);
+
+			int rowschanged = st.executeUpdate();
+
+			st.close();
+			//if something was changed, it did modified workspace
+			if(rowschanged > 0){
+				System.out.println("Workspace modified.");
+			}
+			else{
+				System.out.println("Workspace not found.");
+			}
+
+		}catch(NumberFormatException e){
+			System.out.println("workspaceID must be an integer.");
+		
+		} catch(SQLException e){
+			System.err.println("Something went wrong modifying the workspace.");
+		}
+	}
+
+	private boolean userBelongsWorkspace(int UserID, int WorkspaceID){
+		try{
+			String checkUserWorkspace = "SELECT COUNT(*) AS Total From UserWorkspace " +
+			"WHERE UserID = ? AND WorkspaceID = ?";
+			
+			PreparedStatement st = conn.prepareStatement(checkUserWorkspace);
+
+			//? = UserID being checked
+			st.setInt(1, UserID);
+
+			//? = WorkspaceID being checked
+			st.setInt(2, WorkspaceID);
+
+			ResultSet r = st.executeQuery();
+
+			if(r.next()){
+				int total = r.getInt("Total");
+
+				r.close();
+				st.close();
+				
+				//user belongs if total > 0
+				boolean result = total > 0;
+
+				return result;
+			}
+
+			r.close();
+			st.close();
+		}
+
+		catch(SQLException e){
+			System.err.println("Something went wrong checking the relationship UserWorkspace.");
+		}
+
+		return false;
+	}
+
+	private void moveConversationToWorkspace() {
+		try{
+			System.out.println("Enter UserID:");
+			int userID = Integer.parseInt(scanner.nextLine().trim());
+
+			System.out.println("Enter conversationID:");
+			int conversationID = Integer.parseInt(scanner.nextLine().trim());
+
+			System.out.println("Enter WorkspaceID:");
+			int wsID = Integer.parseInt(scanner.nextLine().trim());
+
+			if(!userBelongsWorkspace(userID, wsID)){
+				System.out.println("User " + userID + " does not belong to this workspace.");
+				return;
+			}
+
+			String moveConversation = 
+			"UPDATE Conversation " +
+			"SET WorkspaceID = ? " +
+			"WHERE ConversationID = ? AND UserID = ?";
+
+			PreparedStatement st = conn.prepareStatement(moveConversation);
+
+			//? = wsID
+			st.setInt(1, wsID);
+
+			//? = conversation to move
+			st.setInt(2, conversationID);
+
+			//? = userID
+			st.setInt(3, userID);
+
+			int rows = st.executeUpdate();
+
+			st.close();
+
+			if(rows > 0){
+				System.out.println("Success moving conversation to workspace");
+			}
+
+			else{
+				System.out.println("conversation does not exist or does not belong to user "
+					+ userID + ".");
+			}
+		} catch(NumberFormatException e){
+			System.out.println("IDs must be integers.");
+		
+		} catch(SQLException e){
+			System.err.println("Something went wrong moving the conversation.");
+		}
 	}
 
 	/**
