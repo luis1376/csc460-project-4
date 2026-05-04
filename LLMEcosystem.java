@@ -522,38 +522,192 @@ public class LLMEcosystem
 	
 	
 	/**
-	 * ====================================================== 
+	 * ======================================================
 	 * Billing operations -- functionality 7
 	 */
-	// TODO
-	private void generateInvoice()
-	{
-		System.out.println("TODO: generateInvoice");
-	}
 
-	private void markInvoicePaid()
+	/**
+	 * generateInvoice() Creates a new unpaid invoice for a user based on their
+	 * current membership tier fee.
+	 */
+	private void generateInvoice() throws SQLException
 	{
-		System.out.println("TODO: markInvoicePaid");
+		System.out.print("Enter UserID: ");
+		int userId = Integer.parseInt(scanner.nextLine().trim());
+
+		// look up the user's tier fee
+		String feeSql = "SELECT mt.Fee FROM Users u "
+				+ "JOIN MembershipTier mt ON u.TierID = mt.TierID "
+				+ "WHERE u.UserID = ?";
+		double fee;
+		try (PreparedStatement stmt = conn.prepareStatement(feeSql))
+		{
+			stmt.setInt(1, userId);
+			try (ResultSet rs = stmt.executeQuery())
+			{
+				if (!rs.next())
+					throw new SQLException("User not found or has no membership tier.");
+				fee = rs.getDouble("Fee");
+			}
+		}
+
+		String insertSql = "INSERT INTO Invoice (InvoiceID, UserID, Amount, \"Date\", Status) "
+				+ "VALUES (invoice_seq.NEXTVAL, ?, ?, SYSDATE, 'unpaid')";
+		try (PreparedStatement stmt = conn.prepareStatement(insertSql, new String[]{ "InvoiceID" }))
+		{
+			stmt.setInt(1, userId);
+			stmt.setDouble(2, fee);
+			stmt.executeUpdate();
+			try (ResultSet rs = stmt.getGeneratedKeys())
+			{
+				if (rs.next())
+					System.out.printf("Invoice generated (ID: %d) for $%.2f — status: unpaid%n",
+							rs.getInt(1), fee);
+			}
+		}
 	}
 
 	/**
-	 * ====================================================== 
+	 * markInvoicePaid() Marks an existing invoice as "paid."
+	 */
+	private void markInvoicePaid() throws SQLException
+	{
+		System.out.print("Enter InvoiceID: ");
+		int invoiceId = Integer.parseInt(scanner.nextLine().trim());
+
+		String sql = "UPDATE Invoice SET Status = 'paid' WHERE InvoiceID = ? AND Status = 'unpaid'";
+		try (PreparedStatement stmt = conn.prepareStatement(sql))
+		{
+			stmt.setInt(1, invoiceId);
+			int rows = stmt.executeUpdate();
+			if (rows > 0)
+				System.out.println("Invoice marked as paid.");
+			else
+				System.out.println("Invoice not found or is already paid.");
+		}
+	}
+
+	/**
+	 * ======================================================
 	 * Support Ticket Lifecycle -- functionality 8
 	 */
-	// TODO
-	private void createSupportTicket()
+
+	/**
+	 * createSupportTicket() Opens a new support ticket for a user and assigns it
+	 * to an agent.
+	 */
+	private void createSupportTicket() throws SQLException
 	{
-		System.out.println("TODO: createSupportTicket");
+		// show available agents
+		String agentSql = "SELECT AgentID, Name FROM SupportAgent ORDER BY AgentID";
+		try (PreparedStatement stmt = conn.prepareStatement(agentSql);
+			 ResultSet rs = stmt.executeQuery())
+		{
+			System.out.println("\nAvailable agents:");
+			while (rs.next())
+				System.out.printf("  %d - %s%n", rs.getInt("AgentID"), rs.getString("Name"));
+		}
+
+		System.out.print("Enter UserID: ");
+		int userId = Integer.parseInt(scanner.nextLine().trim());
+		System.out.print("Enter Topic: ");
+		String topic = scanner.nextLine().trim();
+		System.out.print("Enter AgentID: ");
+		int agentId = Integer.parseInt(scanner.nextLine().trim());
+
+		String insertSql = "INSERT INTO SupportTicket (TicketID, UserID, AgentID, Topic, DateOpened) "
+				+ "VALUES (ticket_seq.NEXTVAL, ?, ?, ?, SYSDATE)";
+		try (PreparedStatement stmt = conn.prepareStatement(insertSql, new String[]{ "TicketID" }))
+		{
+			stmt.setInt(1, userId);
+			stmt.setInt(2, agentId);
+			stmt.setString(3, topic);
+			stmt.executeUpdate();
+			try (ResultSet rs = stmt.getGeneratedKeys())
+			{
+				if (rs.next())
+					System.out.printf("Support ticket created (ID: %d).%n", rs.getInt(1));
+			}
+		}
 	}
 
-	private void assignTicketToAgent()
+	/**
+	 * assignTicketToAgent() Reassigns an existing open ticket to a different agent.
+	 */
+	private void assignTicketToAgent() throws SQLException
 	{
-		System.out.println("TODO: assignTicketToAgent");
+		System.out.print("Enter TicketID: ");
+		int ticketId = Integer.parseInt(scanner.nextLine().trim());
+
+		// show available agents
+		String agentSql = "SELECT AgentID, Name FROM SupportAgent ORDER BY AgentID";
+		try (PreparedStatement stmt = conn.prepareStatement(agentSql);
+			 ResultSet rs = stmt.executeQuery())
+		{
+			System.out.println("\nAvailable agents:");
+			while (rs.next())
+				System.out.printf("  %d - %s%n", rs.getInt("AgentID"), rs.getString("Name"));
+		}
+
+		System.out.print("Enter new AgentID: ");
+		int agentId = Integer.parseInt(scanner.nextLine().trim());
+
+		String sql = "UPDATE SupportTicket SET AgentID = ? WHERE TicketID = ? AND DateClosed IS NULL";
+		try (PreparedStatement stmt = conn.prepareStatement(sql))
+		{
+			stmt.setInt(1, agentId);
+			stmt.setInt(2, ticketId);
+			int rows = stmt.executeUpdate();
+			if (rows > 0)
+				System.out.println("Ticket assigned to agent.");
+			else
+				System.out.println("Ticket not found or is already closed.");
+		}
 	}
 
-	private void updateTicketResolution()
+	/**
+	 * updateTicketResolution() Closes a ticket with a resolution status and
+	 * displays the resolution duration.
+	 */
+	private void updateTicketResolution() throws SQLException
 	{
-		System.out.println("TODO: updateTicketResolution");
+		System.out.print("Enter TicketID: ");
+		int ticketId = Integer.parseInt(scanner.nextLine().trim());
+		System.out.print("Enter resolution status (Resolved/Escalated): ");
+		String status = scanner.nextLine().trim();
+		if (!status.equals("Resolved") && !status.equals("Escalated"))
+		{
+			System.out.println("Status must be 'Resolved' or 'Escalated'.");
+			return;
+		}
+
+		String updateSql = "UPDATE SupportTicket SET Status = ?, DateClosed = SYSDATE "
+				+ "WHERE TicketID = ? AND DateClosed IS NULL";
+		try (PreparedStatement stmt = conn.prepareStatement(updateSql))
+		{
+			stmt.setString(1, status);
+			stmt.setInt(2, ticketId);
+			int rows = stmt.executeUpdate();
+			if (rows == 0)
+			{
+				System.out.println("Ticket not found or is already closed.");
+				return;
+			}
+		}
+
+		// display duration in days
+		String durSql = "SELECT TRUNC(DateClosed) - TRUNC(DateOpened) AS DurationDays "
+				+ "FROM SupportTicket WHERE TicketID = ?";
+		try (PreparedStatement stmt = conn.prepareStatement(durSql))
+		{
+			stmt.setInt(1, ticketId);
+			try (ResultSet rs = stmt.executeQuery())
+			{
+				if (rs.next())
+					System.out.printf("Ticket closed as '%s'. Resolution duration: %d day(s).%n",
+							status, rs.getInt("DurationDays"));
+			}
+		}
 	}
 
 	
