@@ -80,6 +80,7 @@ CREATE TABLE Conversation (
     PersonaID      INTEGER,
     UserID         INTEGER NOT NULL REFERENCES Users(UserID) ON DELETE CASCADE,
     WorkspaceID    INTEGER REFERENCES Workspace(WorkspaceID) ON DELETE SET NULL,
+    IsActive       INTEGER,
     FOREIGN KEY (PersonaID, VersionID) REFERENCES Persona(PersonaID, VersionID)
 );
 

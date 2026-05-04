@@ -198,6 +198,7 @@ public class LLMEcosystem
 			s.close();
 		} catch(SQLException e){
 			System.err.println("Error getting next available WorkspaceID");
+			System.err.println(e.getMessage()); 
 		}
 
 		return -1;
@@ -291,6 +292,7 @@ public class LLMEcosystem
 			}
 
 			System.err.println("Error creating the workspace.");
+			System.err.println(e.getMessage());
 		}
 	}
 
@@ -342,6 +344,7 @@ public class LLMEcosystem
 		
 		} catch(SQLException e){
 			System.err.println("Something went wrong modifying the workspace.");
+			System.err.println(e.getMessage());
 		}
 	}
 
@@ -378,6 +381,7 @@ public class LLMEcosystem
 
 		catch(SQLException e){
 			System.err.println("Something went wrong checking the relationship UserWorkspace.");
+			System.err.println(e.getMessage());
 		}
 
 		return false;
@@ -432,6 +436,7 @@ public class LLMEcosystem
 		
 		} catch(SQLException e){
 			System.err.println("Something went wrong moving the conversation.");
+			System.err.println(e.getMessage());
 		}
 	}
 
@@ -439,15 +444,166 @@ public class LLMEcosystem
 	 * ====================================================== 
 	 * Persona management -- functionality 4
 	 */
-	// TODO
-	private void createPersona()
-	{
-		System.out.println("TODO: createPersona");
+	private int getAvailablePersonaID(){
+		//get next ID from sequence
+		String sq = "SELECT persona_seq.NEXTVAL from dual";
+		try{
+			Statement s = conn.createStatement();
+			ResultSet r = s.executeQuery(sq);
+			
+			//get the number
+			if(r.next()){
+				int nexID = r.getInt(1);
+				r.close();
+				s.close();
+				return nexID;
+			}
+
+			r.close();
+			s.close();
+		} catch(SQLException e){
+			System.err.println("Error getting next available PersonaID.");
+			System.err.println(e.getMessage());
+		}
+
+		return -1;
 	}
 
-	private void deletePersona()
-	{
-		System.out.println("TODO: deletePersona (check active conversations)");
+	private void createPersona(){
+		try{
+			int PersonaID = getAvailablePersonaID();
+
+			//stop if we couldnot get valid ID
+			if(PersonaID == -1){
+				System.out.println("Something went wrong creating Persona as personaID was not generated.");
+				return;
+			}
+
+			//start with version 1
+			int versionID = 1;
+
+			System.out.println("Enter Persona name:");
+			String name = scanner.nextLine().trim();
+			
+			System.out.println("Enter Persona guidelines:");
+			String guidelines = scanner.nextLine().trim();
+
+			String insertPersona = "INSERT INTO Persona(PersonaID, VersionID, Name, Guidelines, DateCreated, DeletedStatus) "
+			+ "VALUES(?, ?, ?, ?, CURRENT_DATE, 0)";
+
+			PreparedStatement st = conn.prepareStatement(insertPersona);
+			
+			//? = PersonaID
+			st.setInt(1, PersonaID);
+
+			//? = VersionID
+			st.setInt(2, versionID);
+
+			//? = name
+			st.setString(3, name);
+
+			//? = guidelines
+			st.setString(4, guidelines);
+
+			st.executeUpdate();
+			st.close();
+
+			System.out.println("Persona created. PersonaID: " + PersonaID);
+			System.out.println("VersionID: " + versionID);
+		
+		} catch(SQLException e){
+			System.err.println("Something went wrong creating Persona.");
+			System.err.println(e.getMessage());
+		}
+	}
+	private int activeConversations(int PersonaID, int versionID){
+		try{
+			String countActive = 
+				"SELECT COUNT(*) AS Total "
+				+ "FROM Conversation " 
+				+ "WHERE PersonaID = ? AND VersionID = ? AND IsActive = 1";
+			
+			PreparedStatement st = conn.prepareStatement(countActive);
+			//? = PersonaID
+			st.setInt(1, PersonaID);
+
+			//? = VersionID
+			st.setInt(2, versionID);
+
+			ResultSet r = st.executeQuery();
+			
+			if(r.next()){
+				int total = r.getInt("Total");
+
+				r.close();
+				st.close();
+
+				return total;
+			}
+
+			r.close();
+			st.close();
+		
+		} catch(SQLException e){
+			System.err.println("Something went wrong getting the number of active conversations.");
+			System.err.println(e.getMessage());
+		}
+		//something went wrong if returned value is -1
+		return -1;
+	}
+
+	private void deletePersona(){
+		try{
+			System.out.println("Enter PersonaID to delete:");
+			int PersonaID = Integer.parseInt(scanner.nextLine().trim());
+			
+			System.out.println("Enter VersionID to delete:");
+			int VersionID = Integer.parseInt(scanner.nextLine().trim());
+
+			//get the number of active conversations based on input
+			int activeConversations = activeConversations(PersonaID, VersionID);
+
+			if(activeConversations == -1){
+				System.out.println("Could not get the number of active conversations. No persona was deleted.");
+				return;
+			}
+
+			//persona cannot be deleted if it is in more than 5 active conversations
+			if(activeConversations > 5){
+				System.out.println("Persona cannot be deleted, as it is used in more than 5 conversations.");
+				return;
+			}
+
+			String deletePersona =
+				"UPDATE Persona " +
+				"SET DeletedStatus = 1 " +
+				"WHERE PersonaID = ? and VersionID = ?";
+
+			PreparedStatement st = conn.prepareStatement(deletePersona);
+
+			//? = PersonaID
+			st.setInt(1, PersonaID);
+
+			//? = VersionID
+			st.setInt(2, VersionID);
+
+			int rows = st.executeUpdate();
+			st.close();
+
+			if(rows > 0){
+				System.out.println("Persona deleted.");
+			}
+
+			else{
+				System.out.println("Persona was not found. No persona was deleted.");
+			}
+		} catch(NumberFormatException e){
+			System.out.println("IDs must be integers.");
+
+		} catch(SQLException e){
+			System.err.println("Something went wrong deleting the Persona.");
+			System.err.println(e.getMessage());
+		}
 	}
 
 	
