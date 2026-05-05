@@ -113,8 +113,8 @@ CREATE TABLE Invoice (
     InvoiceID     INTEGER PRIMARY KEY,
     UserID        INTEGER NOT NULL REFERENCES Users(UserID),
     Amount        NUMBER(10,2) NOT NULL,
-    IDate          DATE NOT NULL,
-    IStatus        VARCHAR2(10) CHECK (Status IN ('paid','unpaid'))
+    IDate         DATE NOT NULL,
+    IStatus       VARCHAR2(10) CHECK (IStatus IN ('paid','unpaid'))
 );
 
 CREATE TABLE SupportAgent (
@@ -129,7 +129,7 @@ CREATE TABLE SupportTicket (
     Topic         VARCHAR2(50) NOT NULL,
     DateOpened    DATE NOT NULL,
     DateClosed    DATE,
-    STStatus        VARCHAR2(15) CHECK (Status IN ('Resolved','Escalated'))
+    STStatus      VARCHAR2(15) CHECK (STStatus IN ('Resolved','Escalated'))
 );
 
 -- relationship tables
@@ -143,7 +143,7 @@ CREATE TABLE UserWorkspace (
     UserID        INTEGER REFERENCES Users(UserID) ON DELETE CASCADE,
     WorkspaceID   INTEGER REFERENCES Workspace(WorkspaceID) ON DELETE CASCADE,
     DateJoined    DATE NOT NULL,
-    UWRole          VARCHAR2(20) CHECK (Role IN ('Admin','Editor','Viewer')), -- Admin can change templates and other users' roles; editors can only change templates; viewers can only use templates
+    UWRole        VARCHAR2(20) CHECK (UWRole IN ('Admin','Editor','Viewer')),
     PRIMARY KEY (UserID, WorkspaceID)
 );
 
