@@ -140,7 +140,7 @@ public class LLMEcosystem
 			System.out.println("Cannot delete user account: invoice is unpaid or a support ticket is open");
 			return;
 		}
-		String deleteStmt = "DELETE FROM Users WHERE UserID = ?";
+		String deleteStmt = "DELETE FROM Users WHERE UserID = ?"; // sql "ON DELETE CASCADE" in table creation will delete user's messages and conversations
 		PreparedStatement stmt = conn.prepareStatement(deleteStmt);
 		stmt.setInt(1, UserID);
 		stmt.executeUpdate();
@@ -203,12 +203,59 @@ public class LLMEcosystem
 		}
 	}
 
-	private void updateMessageFeedback()
-	{
-		System.out.println("TODO: updateMessageFeedback");
-	}
+	// adds or updates feedback to a message
+	private void updateMessageFeedback() throws SQLException {
+		System.out.println("Please enter userID to see messages: ");
+		int uID = scanner.nextInt();
+		scanner.nextLine();
+		
+		System.out.println("Available messages to give feedback to: ");
+		String msgQuery = "SELECT MessageID, Content FROM Conversation c JOIN Message m ON c.ConversationID = m.ConversationID WHERE c.UserID = ? AND m.SenderRole = 'AI'";
+		PreparedStatement stmt = conn.prepareStatement(msgQuery);
+		stmt.setInt(1, uID);
+		ResultSet rs = stmt.executeQuery();
 
-	
+		while(rs.next()) {
+			System.out.println("MessageID: " + rs.getInt("MessageID") +
+                               " | Content: " + rs.getString("Content"));
+		}
+
+		System.out.println("Enter the MessageID you want to give feedback to: ");
+        int msgID = scanner.nextInt();
+        scanner.nextLine();
+
+		System.out.println("Enter feedback text: ");
+        String feedback = scanner.nextLine();
+
+		System.out.println("Enter if message good or bad (1/0): ");
+        int rating = scanner.nextInt();
+		scanner.nextLine();
+
+		String chkQuery = "SELECT COUNT(*) FROM Feedback WHERE MessageID = ?"; // are there any feedback relations for the message?
+		PreparedStatement chkStmt = conn.prepareStatement(chkQuery);
+		chkStmt.setInt(1, msgID);
+		ResultSet chkRs = chkStmt.executeQuery();
+		chkRs.next();
+		int count = chkRs.getInt(1);
+
+		if(count > 0) { // feedback exists, just modify it
+			String updateQuery = "UPDATE Feedback SET Text = ?, Rating = ? WHERE MessageID = ?";
+	        PreparedStatement updateStmt = conn.prepareStatement(updateQuery);
+	        updateStmt.setString(1, feedback);
+	        updateStmt.setInt(2, rating);
+			updateStmt.setInt(3,msgID);
+			updateStmt.executeUpdate();
+		}
+		else { // message has no feedback, insert new feedback into database
+			String insQuery = "INSERT INTO Feedback (FeedbackID, Rating, Text, Date, userID, MessageID) VALUES (feedback_seq.NEXTVAL, ?, ?, SYSDATE, ?, ?)";
+    		PreparedStatement insStmt = conn.prepareStatement(insQuery);
+		    insStmt.setInt(1, rating);
+		    insStmt.setString(2, feedback);
+		    insStmt.setInt(3, uID);
+			insStmt.setInt(4, msgID);
+		    insStmt.executeUpdate();
+		}
+	}
 	
 	/**
 	 * ====================================================== 
