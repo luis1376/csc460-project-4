@@ -33,9 +33,9 @@ import java.util.Scanner;
 public class LLMEcosystem
 {
 
-	// private static final String DB_URL = "jdbc:oracle:thin:@aloe.cs.arizona.edu:1521:oracle";
-	// private static final String DB_USER = "shalevancleve";
-	// private static final String DB_PASS = "a2532";
+	private static final String DB_URL = "jdbc:oracle:thin:@aloe.cs.arizona.edu:1521:oracle";
+	private static final String DB_USER = "shalevancleve";
+	private static final String DB_PASS = "a2532";
 
 	private static Connection conn;
 	private Scanner scanner;
@@ -48,16 +48,10 @@ public class LLMEcosystem
 
 	private void connectToDatabase()
 	{
-		System.out.print("Oracle username: ");
-		String user = scanner.nextLine().trim();
-		System.out.print("Password: ");
-		String pass = scanner.nextLine().trim();
-
-		String url = "jdbc:oracle:thin:@aloe.cs.arizona.edu:1521:oracle";
 		try
 		{
 			Class.forName("oracle.jdbc.OracleDriver");
-			conn = DriverManager.getConnection(url, user, pass);
+			conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASS);
 			System.out.println("Connected to Oracle DB successfully.\n");
 		}
 		catch (Exception e)
@@ -84,8 +78,8 @@ public class LLMEcosystem
 	* @note   when creating user. tier defaults to "Free" with tierID 1
 	*/
 	public void addUser(String name, String email, String preferredUI) {
-		String insertStmt = "INSERT INTO User (Name, Email, preferredUI, DateCreated, TierID) "
-							+ "VALUES (user_seq.NEXTVAL, ?,  ?, ?, SYSDATE, 1)";
+		String insertStmt = "INSERT INTO Users (UserID, UName, Email, PreferredUI, DateCreated, TierID) "
+							+ "VALUES (user_seq.NEXTVAL, ?, ?, ?, SYSDATE, 1)";
 		try {
 			PreparedStatement stmt = conn.prepareStatement(insertStmt);
 			stmt.setString(1, name);
@@ -95,7 +89,6 @@ public class LLMEcosystem
 		}
 		catch (SQLException e) {
 			System.err.println("Error adding user to database");
-			return;
 		}
 	}
 
@@ -110,23 +103,29 @@ public class LLMEcosystem
 	* @return None
 	* @note   dateCreated & UserID fields remain unchanged
 	*/
-	public void updateUser(int UserID, String newName, String newEmail, String preferredUI, int tierID) throws SQLException {
-		String updateQuery = "UPDATE Users SET Name = ?, Email = ?, preferredUI = ?, tierID = ? WHERE UserID = ?";
+	public void updateUser(int UserID, String newName, String newEmail, String newPreferredUI, int newTierID) throws SQLException {
+		String updateQuery = "UPDATE Users SET UName = ?, Email = ?, PreferredUI = ?, TierID = ? WHERE UserID = ?";
 		PreparedStatement stmt = conn.prepareStatement(updateQuery);
-		stmt.setString(1,newName); 
+		stmt.setString(1, newName); 
 		stmt.setString(2, newEmail);
-		stmt.setString(3, preferredUI);
-		stmt.setInt(4, tierID);
+		stmt.setString(3, newPreferredUI);
+		stmt.setInt(4, newTierID);
 		stmt.setInt(5, UserID);
 		stmt.executeUpdate();
 	}
 
 
-	// checks if a user has unpaid invoices or an unclosed support ticket
+	/*
+
+	* Checks if a user has unpaid invoices or an unclosed support ticket
+	*
+	* @param  UserID, the unique id of the user whose invoices/tickets we are checking
+	* @return True if the  user has unpaid invoices or unclosed tickets, else false
+	*/
 	public boolean checkUnpaidInvoicesOrSupportTickets(int UserID) throws SQLException {
 		String query = "SELECT DISTINCT UserID FROM SupportTicket WHERE UserID = ? AND DateClosed IS NULL" +
 					   " UNION " + 
-					   "SELECT DISTINCT UserID FROM Invoice WHERE UserID = ? AND status = 'unpaid'";
+					   "SELECT DISTINCT UserID FROM Invoice WHERE UserID = ? AND IStatus = 'unpaid'";
 		PreparedStatement stmt = conn.prepareStatement(query);
 		stmt.setInt(1, UserID);
 		stmt.setInt(2, UserID);
@@ -135,10 +134,11 @@ public class LLMEcosystem
 	}
 	
 	/*
-	* Deletes a user in the database
+	* Deletes a user in the database, and their associated info.
 	*
-	*
-	* @note deletion fails if invoices unpaid or open support tickets
+	* @param  UserID, the unique id of the user whose record we are deleting
+	* @return None
+	* @note   deletion fails if invoices unpaid or open support tickets
 	*/
 	public void deleteUser(int UserID) throws SQLException {
 		boolean failed = checkUnpaidInvoicesOrSupportTickets(UserID);
@@ -146,7 +146,7 @@ public class LLMEcosystem
 			System.out.println("Cannot delete user account: invoice is unpaid or a support ticket is open");
 			return;
 		}
-		String deleteStmt = "DELETE FROM Users WHERE UserID = ?";
+		String deleteStmt = "DELETE FROM Users WHERE UserID = ?"; // sql "ON DELETE CASCADE" in table creation will delete user's messages and conversations
 		PreparedStatement stmt = conn.prepareStatement(deleteStmt);
 		stmt.setInt(1, UserID);
 		stmt.executeUpdate();
@@ -155,29 +155,134 @@ public class LLMEcosystem
 	/**
 	 * ====================================================== 
 	 * Handle Conversations & messages -- functionality 2
+	 * startConversation()
+	 * updateMessageFeedback()
 	 */
-	// TODO
-	private void startConversation()
-	{
-		System.out.println("TODO: startConversation");
-	}
-
-	private void addMessageToConversation()
-	{
-		System.out.println("TODO: addMessageToConversation");
-	}
-
-	private void updateMessageFeedback()
-	{
-		System.out.println("TODO: updateMessageFeedback");
-	}
-
 	
+	/*
+	* Starts a new conversation in the LLM database, optionally adding a persona to it. If personas 
+	* are unavailable (none created yet) the conversation will be initialized with NULL persona IDs
+	*
+	* @param  None
+	* @return None
+	*/
+	private void startConversation() throws SQLException {
+		
+		System.out.println("Please enter UserID: "); // id of user starting conversation
+		int uID = scanner.nextInt();
+		scanner.nextLine();
+
+		System.out.println("Please enter conversation title: ");
+		String cTitle = scanner.nextLine().trim();
+
+		// when a user starts a conversation, they can attach a persona to it
+		System.out.println("Available personas: ");
+		String pQuery = "SELECT PersonaID, PName, VersionID FROM Persona WHERE DeletedStatus = 0"; // only select active personas
+		Statement stmt1 = conn.createStatement();
+		ResultSet result = stmt1.executeQuery(pQuery);
+		boolean personasAvailable = false;
+		while(result.next()) {
+			personasAvailable = true;
+			System.out.println("Persona ID: " + result.getInt("PersonaID") 
+							   + "\nName: " + result.getString("PName") 
+							   + "\nVersionID: " + result.getInt("VersionID"));
+		}
+		System.out.println("Would you like to add a persona to this conversation? (y/n)");
+		String answer = scanner.nextLine();
+		
+		if( (answer.equals("y") && !personasAvailable) || answer.equals("n")) {
+			System.out.println("No personas selected or none available. Adding conversation...\n");
+			String insQuery = "INSERT INTO Conversation (ConversationID, Title, DateCreated, VersionID, PersonaID, UserID, WorkspaceID, IsActive) "
+							+ "VALUES (conv_seq.NEXTVAL, ?, SYSDATE, NULL, NULL, ?, NULL, 1)";
+			PreparedStatement stmt2 = conn.prepareStatement(insQuery);
+			stmt2.setString(1, cTitle); 
+			stmt2.setInt(2, uID);
+			stmt2.executeUpdate();
+		}
+		else if(answer.equals("y") && personasAvailable) { 
+			System.out.println("Input <personaID> <versionID> of persona you'd like:\n");
+			int pID = scanner.nextInt();
+			int vID = scanner.nextInt();
+			String insQuery = "INSERT INTO Conversation (ConversationID, Title, DateCreated, VersionID, PersonaID, UserID, WorkspaceID, IsActive) "
+							+ "VALUES (conv_seq.NEXTVAL, ?, SYSDATE, ?, ?, ?, NULL, 1)";
+			PreparedStatement stmt2 = conn.prepareStatement(insQuery);
+			stmt2.setString(1, cTitle); 
+			stmt2.setInt(2, vID);
+			stmt2.setInt(3, pID);
+			stmt2.setInt(4, uID);
+			stmt2.executeUpdate();
+		}
+		else {
+			System.out.println("Must select y or n. Conversation failed to be created.");
+		}
+	}
+
+	/*
+	* Adds or updates feedback to a message, depending on if a feedback
+	* relation already exists for a requested message.
+	*
+	* @param  None
+	* @return None
+	*/
+	private void updateMessageFeedback() throws SQLException {
+		System.out.println("Please enter userID to see messages: ");
+		int uID = scanner.nextInt();
+		scanner.nextLine();
+		
+		System.out.println("Available messages to give feedback to: ");
+		String msgQuery = "SELECT MessageID, Content FROM Conversation c JOIN Message m ON c.ConversationID = m.ConversationID WHERE c.UserID = ? AND m.SenderRole = 'AI'"; // Only AI messages can get feedback
+		PreparedStatement stmt = conn.prepareStatement(msgQuery);
+		stmt.setInt(1, uID);
+		ResultSet rs = stmt.executeQuery();
+
+		while(rs.next()) {
+			System.out.println("MessageID: " + rs.getInt("MessageID") +
+                               " | Content: " + rs.getString("Content"));
+		}
+
+		System.out.println("Enter the MessageID you want to give feedback to: ");
+        int msgID = scanner.nextInt();
+        scanner.nextLine();
+
+		System.out.println("Enter feedback text: ");
+        String feedback = scanner.nextLine();
+
+		System.out.println("Enter if message good or bad (1/0): ");
+        int rating = scanner.nextInt();
+		scanner.nextLine();
+
+		String chkQuery = "SELECT COUNT(*) FROM Feedback WHERE MessageID = ?"; // are there any feedback relations for the message?
+		PreparedStatement chkStmt = conn.prepareStatement(chkQuery);
+		chkStmt.setInt(1, msgID);
+		ResultSet chkRs = chkStmt.executeQuery();
+		chkRs.next();
+		int count = chkRs.getInt(1);
+
+		if(count > 0) { // feedback exists, just modify it
+			String updateQuery = "UPDATE Feedback SET FText = ?, IsThumbsUp = ? WHERE MessageID = ?";
+	        PreparedStatement updateStmt = conn.prepareStatement(updateQuery);
+	        updateStmt.setString(1, feedback);
+	        updateStmt.setInt(2, rating);
+			updateStmt.setInt(3,msgID);
+			updateStmt.executeUpdate();
+		}
+		else { // message has no feedback, insert new feedback into database
+			String insQuery = "INSERT INTO Feedback (FeedbackID, IsThumbsUp, FText, FDate, UserID, MessageID) "
+				            + "VALUES (feedback_seq.NEXTVAL, ?, ?, SYSDATE, ?, ?)";
+    		PreparedStatement insStmt = conn.prepareStatement(insQuery);
+		    insStmt.setInt(1, rating);
+		    insStmt.setString(2, feedback);
+		    insStmt.setInt(3, uID);
+			insStmt.setInt(4, msgID);
+		    insStmt.executeUpdate();
+		}
+	}
 	
 	/**
 	 * ====================================================== 
 	 * workspace organization -- functionality 3
 	 */
+
 
 	/* getAvailableWorkspaceID()
 	 * Method designed to get the next available workspaceID from the Oracle sequence.
@@ -1584,13 +1689,13 @@ public class LLMEcosystem
 			case "2":
 				 System.out.print("UserID to update: ");
 				 int userId = Integer.parseInt(scanner.nextLine());
-				 System.out.print("New Name (leave blank to keep current): ");
+				 System.out.print("New Name: ");
 				 String newName = scanner.nextLine();
-				 System.out.print("New Email (leave blank to keep current): ");
+				 System.out.print("New Email: ");
 				 String newEmail = scanner.nextLine();
-				 System.out.print("New Preferred UI (leave blank to keep current): ");
+				 System.out.print("New Preferred UI Language: ");
 				 String newUI = scanner.nextLine();
-				 System.out.print("New TierID (leave blank to keep current): ");
+				 System.out.print("New TierID: ");
 				 String tierInput = scanner.nextLine();
 				 int newTierId = tierInput.isEmpty() ? -1 : Integer.parseInt(tierInput);
 				 updateUser(userId, newName, newEmail, newUI, newTierId);
@@ -1616,8 +1721,7 @@ public class LLMEcosystem
 	{
 		System.out.println("\n--- Conversations & Messages ---");
 		System.out.println("1. Start New Conversation");
-		System.out.println("2. Add Message to Conversation");
-		System.out.println("3. Update Message Feedback");
+		System.out.println("2. Update Message Feedback");
 		System.out.print("Choice: ");
 		String sub = scanner.nextLine().trim();
 		try
@@ -1628,9 +1732,6 @@ public class LLMEcosystem
 				startConversation();
 				break;
 			case "2":
-				addMessageToConversation();
-				break;
-			case "3":
 				updateMessageFeedback();
 				break;
 			default:

@@ -48,7 +48,7 @@ CREATE TABLE MembershipTier (
 -- Users because User is an Oracle keyword
 CREATE TABLE Users (
     UserID        INTEGER PRIMARY KEY,
-    Name          VARCHAR2(20) NOT NULL,
+    UName          VARCHAR2(20) NOT NULL,
     Email         VARCHAR2(30) UNIQUE NOT NULL,
     PreferredUI   VARCHAR2(15),
     DateCreated   DATE NOT NULL,
@@ -58,7 +58,7 @@ CREATE TABLE Users (
 CREATE TABLE Persona (
     PersonaID     INTEGER,
     VersionID     INTEGER,
-    Name          VARCHAR2(20) NOT NULL,
+    PName          VARCHAR2(20) NOT NULL,
     Guidelines    VARCHAR2(75),
     DateCreated   DATE NOT NULL,
     DeletedStatus INTEGER DEFAULT 0,   -- 0=active, 1=deleted
@@ -67,7 +67,7 @@ CREATE TABLE Persona (
 
 CREATE TABLE Workspace (
     WorkspaceID   INTEGER PRIMARY KEY,
-    Name          VARCHAR2(50) NOT NULL,
+    WName          VARCHAR2(50) NOT NULL,
     Visibility    VARCHAR2(10) CHECK (Visibility IN ('shared','private')),
     DateCreated   DATE NOT NULL
 );
@@ -87,7 +87,7 @@ CREATE TABLE Conversation (
 CREATE TABLE Message (
     MessageID      INTEGER PRIMARY KEY,
     SenderRole     VARCHAR2(10) CHECK (SenderRole IN ('User','AI')),
-    Time           DATE NOT NULL,
+    MTime           DATE NOT NULL,
     Content        VARCHAR2(4000) NOT NULL,
     ConversationID INTEGER NOT NULL REFERENCES Conversation(ConversationID) ON DELETE CASCADE
 );
@@ -95,8 +95,8 @@ CREATE TABLE Message (
 CREATE TABLE Feedback (
     FeedbackID    INTEGER PRIMARY KEY,
     IsThumbsUp    INTEGER NOT NULL CHECK (IsThumbsUp IN (0,1)),   -- 1="thumbs up", 0="thumbs down"
-    Text          VARCHAR2(500),
-    Date          DATE NOT NULL,
+    FText          VARCHAR2(500),
+    FDate          DATE NOT NULL,
     UserID        INTEGER NOT NULL REFERENCES Users(UserID),
     MessageID     INTEGER NOT NULL UNIQUE REFERENCES Message(MessageID)
 );
@@ -113,13 +113,13 @@ CREATE TABLE Invoice (
     InvoiceID     INTEGER PRIMARY KEY,
     UserID        INTEGER NOT NULL REFERENCES Users(UserID),
     Amount        NUMBER(10,2) NOT NULL,
-    Date          DATE NOT NULL,
-    Status        VARCHAR2(10) CHECK (Status IN ('paid','unpaid'))
+    IDate         DATE NOT NULL,
+    IStatus       VARCHAR2(10) CHECK (IStatus IN ('paid','unpaid'))
 );
 
 CREATE TABLE SupportAgent (
     AgentID       INTEGER PRIMARY KEY,
-    Name          VARCHAR2(20) NOT NULL
+    SName          VARCHAR2(20) NOT NULL
 );
 
 CREATE TABLE SupportTicket (
@@ -129,7 +129,7 @@ CREATE TABLE SupportTicket (
     Topic         VARCHAR2(50) NOT NULL,
     DateOpened    DATE NOT NULL,
     DateClosed    DATE,
-    Status        VARCHAR2(15) CHECK (Status IN ('Resolved','Escalated'))
+    STStatus      VARCHAR2(15) CHECK (STStatus IN ('Resolved','Escalated'))
 );
 
 -- relationship tables
@@ -143,7 +143,7 @@ CREATE TABLE UserWorkspace (
     UserID        INTEGER REFERENCES Users(UserID) ON DELETE CASCADE,
     WorkspaceID   INTEGER REFERENCES Workspace(WorkspaceID) ON DELETE CASCADE,
     DateJoined    DATE NOT NULL,
-    Role          VARCHAR2(20) CHECK (Role IN ('Admin','Editor','Viewer')), -- Admin can change templates and other users' roles; editors can only change templates; viewers can only use templates
+    UWRole        VARCHAR2(20) CHECK (UWRole IN ('Admin','Editor','Viewer')),
     PRIMARY KEY (UserID, WorkspaceID)
 );
 
