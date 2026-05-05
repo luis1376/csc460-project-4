@@ -33,9 +33,9 @@ import java.util.Scanner;
 public class LLMEcosystem
 {
 
-	// private static final String DB_URL = "jdbc:oracle:thin:@aloe.cs.arizona.edu:1521:oracle";
-	// private static final String DB_USER = "shalevancleve";
-	// private static final String DB_PASS = "a2532";
+	private static final String DB_URL = "jdbc:oracle:thin:@aloe.cs.arizona.edu:1521:oracle";
+	private static final String DB_USER = "shalevancleve";
+	private static final String DB_PASS = "a2532";
 
 	private static Connection conn;
 	private Scanner scanner;
@@ -48,16 +48,10 @@ public class LLMEcosystem
 
 	private void connectToDatabase()
 	{
-		System.out.print("Oracle username: ");
-		String user = scanner.nextLine().trim();
-		System.out.print("Password: ");
-		String pass = scanner.nextLine().trim();
-
-		String url = "jdbc:oracle:thin:@aloe.cs.arizona.edu:1521:oracle";
 		try
 		{
 			Class.forName("oracle.jdbc.OracleDriver");
-			conn = DriverManager.getConnection(url, user, pass);
+			conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASS);
 			System.out.println("Connected to Oracle DB successfully.\n");
 		}
 		catch (Exception e)
