@@ -363,7 +363,7 @@ public class LLMEcosystem
 			conn.setAutoCommit(false);
 
 			//first one
-			String insertWorkspace = "INSERT INTO Workspace (WorkspaceID, Name, Visibility, DateCreated) " +
+			String insertWorkspace = "INSERT INTO Workspace (WorkspaceID, WName, Visibility, DateCreated) " +
 										"VALUES(?, ?, ?, CURRENT_DATE)";
 			PreparedStatement st1 = conn.prepareStatement(insertWorkspace);
 
@@ -381,8 +381,8 @@ public class LLMEcosystem
 			st1.close();
 
 			//second one
-			String insertUserWorkspace = "INSERT INTO UserWorkspace (UserID, WorkspaceID, DateJoined, Role) " +
-										"VALUES(?, ?, CURRENT_DATE, 'Admin')";
+			String insertUserWorkspace = "INSERT INTO UserWorkspace (UserID, WorkspaceID, DateJoined, UWRole) " +
+										 "VALUES(?, ?, SYSDATE, 'Admin')";
 
 			PreparedStatement st2 = conn.prepareStatement(insertUserWorkspace);
 
@@ -453,7 +453,7 @@ public class LLMEcosystem
 
 			String updateWorkspace = 
 				"UPDATE Workspace " + 
-				"SET Name = ?, Visibility = ? " +
+				"SET WName = ?, Visibility = ? " +
 				"WHERE WorkspaceID = ?";
 
 			PreparedStatement st = conn.prepareStatement(updateWorkspace);
@@ -470,7 +470,7 @@ public class LLMEcosystem
 			int rowschanged = st.executeUpdate();
 
 			st.close();
-			//if something was changed, it did modified workspace
+			//if something was changed, it modified workspace
 			if(rowschanged > 0){
 				System.out.println("Workspace modified.");
 			}
@@ -500,11 +500,11 @@ public class LLMEcosystem
 	 * Postcondition:
 	 * 		None
 	 * Return values:
-	 * 		Boolean, wheter the user belongs to the workspace or not.	
+	 * 		Boolean, whether the user belongs to the workspace or not.	
 	 */
 	private boolean userBelongsWorkspace(int UserID, int WorkspaceID){
 		try{
-			String checkUserWorkspace = "SELECT COUNT(*) AS Total From UserWorkspace " +
+			String checkUserWorkspace = "SELECT COUNT(*) AS Total From UserWorkspace " + 
 			"WHERE UserID = ? AND WorkspaceID = ?";
 			
 			PreparedStatement st = conn.prepareStatement(checkUserWorkspace);
@@ -681,8 +681,8 @@ public class LLMEcosystem
 			System.out.println("Enter Persona guidelines:");
 			String guidelines = scanner.nextLine().trim();
 
-			String insertPersona = "INSERT INTO Persona(PersonaID, VersionID, Name, Guidelines, DateCreated, DeletedStatus) "
-			+ "VALUES(?, ?, ?, ?, CURRENT_DATE, 0)";
+			String insertPersona = "INSERT INTO Persona(PersonaID, VersionID, PName, Guidelines, DateCreated, DeletedStatus) "
+			+ "VALUES(?, ?, ?, ?, SYSDATE, 0)";
 
 			PreparedStatement st = conn.prepareStatement(insertPersona);
 			
@@ -729,7 +729,7 @@ public class LLMEcosystem
 	private int activeConversations(int PersonaID, int versionID){
 		try{
 			String countActive = 
-				"SELECT COUNT(*) AS Total "
+				  "SELECT COUNT(*) AS Total "
 				+ "FROM Conversation " 
 				+ "WHERE PersonaID = ? AND VersionID = ? AND IsActive = 1";
 			
@@ -798,7 +798,7 @@ public class LLMEcosystem
 
 			String deletePersona =
 				"UPDATE Persona " +
-				"SET DeletedStatus = 1 " +
+				"SET DeletedStatus = 1 " + // don't actually delete from DB, so conversations can maintain context
 				"WHERE PersonaID = ? and VersionID = ?";
 
 			PreparedStatement st = conn.prepareStatement(deletePersona);
@@ -852,7 +852,7 @@ public class LLMEcosystem
 	 */
 	private boolean hasPromptEditPermission(int userId, int workspaceId) throws SQLException
 	{
-		String sql = "SELECT Role FROM UserWorkspace WHERE UserID = ? AND WorkspaceID = ?";
+		String sql = "SELECT UWRole FROM UserWorkspace WHERE UserID = ? AND WorkspaceID = ?";
 		try (PreparedStatement stmt = conn.prepareStatement(sql))
 		{
 			stmt.setInt(1, userId);
@@ -861,7 +861,7 @@ public class LLMEcosystem
 			{
 				if (rs.next())
 				{
-					String role = rs.getString("Role");
+					String role = rs.getString("UWRole");
 					return "Admin".equals(role) || "Editor".equals(role);
 				}
 				return false;
@@ -1047,7 +1047,7 @@ public class LLMEcosystem
 	private int countUserMessagesToday(int userId) throws SQLException
 	{
 		String sql = "SELECT COUNT(*) FROM Message m " + "JOIN Conversation c ON m.ConversationID = c.ConversationID "
-				+ "WHERE c.UserID = ? AND TRUNC(m.Time) = TRUNC(SYSDATE)";
+				+ "WHERE c.UserID = ? AND TRUNC(m.MTime) = TRUNC(SYSDATE)"; // TRUNC removes time, just keeps day/year
 		try (PreparedStatement stmt = conn.prepareStatement(sql))
 		{
 			stmt.setInt(1, userId);
@@ -1105,7 +1105,7 @@ public class LLMEcosystem
 				}
 			}
 
-			String insertMsg = "INSERT INTO Message (MessageID, SenderRole, Time, Content, ConversationID) "
+			String insertMsg = "INSERT INTO Message (MessageID, SenderRole, MTime, Content, ConversationID) "
 					+ "VALUES (msg_seq.NEXTVAL, ?, SYSDATE, ?, ?)";
 			int newMessageId;
 			try (PreparedStatement stmt = conn.prepareStatement(insertMsg, new String[]
@@ -1181,8 +1181,8 @@ public class LLMEcosystem
 		}
 
 		// "Date" is quoted because DATE is a reserved word in Oracle SQL
-		String insertSql = "INSERT INTO Invoice (InvoiceID, UserID, Amount, \"Date\", Status) "
-				+ "VALUES (invoice_seq.NEXTVAL, ?, ?, SYSDATE, 'unpaid')";
+		String insertSql = "INSERT INTO Invoice (InvoiceID, UserID, Amount, IDate, IStatus) "
+				         + "VALUES (invoice_seq.NEXTVAL, ?, ?, SYSDATE, 'unpaid')";
 		try (PreparedStatement stmt = conn.prepareStatement(insertSql, new String[]{ "InvoiceID" }))
 		{
 			stmt.setInt(1, userId);
@@ -1215,7 +1215,7 @@ public class LLMEcosystem
 		int invoiceId = Integer.parseInt(scanner.nextLine().trim()); // ID of the invoice to mark paid
 
 		// guard on Status = 'unpaid' so already-paid invoices are not touched
-		String sql = "UPDATE Invoice SET Status = 'paid' WHERE InvoiceID = ? AND Status = 'unpaid'";
+		String sql = "UPDATE Invoice SET IStatus = 'paid' WHERE InvoiceID = ? AND IStatus = 'unpaid'";
 		try (PreparedStatement stmt = conn.prepareStatement(sql))
 		{
 			stmt.setInt(1, invoiceId);
@@ -1253,13 +1253,13 @@ public class LLMEcosystem
 	private void createSupportTicket() throws SQLException
 	{
 		// show every agent so the user can pick a valid AgentID
-		String agentSql = "SELECT AgentID, Name FROM SupportAgent ORDER BY AgentID";
+		String agentSql = "SELECT AgentID, SName FROM SupportAgent ORDER BY AgentID";
 		try (PreparedStatement stmt = conn.prepareStatement(agentSql);
 			 ResultSet rs = stmt.executeQuery())
 		{
 			System.out.println("\nAvailable agents:");
 			while (rs.next())
-				System.out.printf("  %d - %s%n", rs.getInt("AgentID"), rs.getString("Name"));
+				System.out.printf("  %d - %s%n", rs.getInt("AgentID"), rs.getString("SName"));
 		}
 
 		System.out.print("Enter UserID: ");
@@ -1270,7 +1270,7 @@ public class LLMEcosystem
 		int agentId = Integer.parseInt(scanner.nextLine().trim()); // agent handling the ticket
 
 		String insertSql = "INSERT INTO SupportTicket (TicketID, UserID, AgentID, Topic, DateOpened) "
-				+ "VALUES (ticket_seq.NEXTVAL, ?, ?, ?, SYSDATE)";
+				         + "VALUES (ticket_seq.NEXTVAL, ?, ?, ?, SYSDATE)";
 		try (PreparedStatement stmt = conn.prepareStatement(insertSql, new String[]{ "TicketID" }))
 		{
 			stmt.setInt(1, userId);
@@ -1354,7 +1354,7 @@ public class LLMEcosystem
 		System.out.print("Enter resolution status (Resolved/Escalated): ");
 		String status = scanner.nextLine().trim(); // final outcome of the ticket
 
-		// validate before hitting the DB
+		// validate before entering database
 		if (!status.equals("Resolved") && !status.equals("Escalated"))
 		{
 			System.out.println("Status must be 'Resolved' or 'Escalated'.");
@@ -1362,8 +1362,8 @@ public class LLMEcosystem
 		}
 
 		// DateClosed IS NULL guards against closing an already-closed ticket
-		String updateSql = "UPDATE SupportTicket SET Status = ?, DateClosed = SYSDATE "
-				+ "WHERE TicketID = ? AND DateClosed IS NULL";
+		String updateSql = "UPDATE SupportTicket SET STStatus = ?, DateClosed = SYSDATE "
+				         + "WHERE TicketID = ? AND DateClosed IS NULL";
 		try (PreparedStatement stmt = conn.prepareStatement(updateSql))
 		{
 			stmt.setString(1, status);
