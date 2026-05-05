@@ -178,7 +178,17 @@ public class LLMEcosystem
 	 * ====================================================== 
 	 * workspace organization -- functionality 3
 	 */
-	//
+
+	/* getAvailableWorkspaceID()
+	 * Method designed to get the next available workspaceID from the Oracle sequence.
+	 * Precondition: 
+	 * 		the connection is active
+	 * 		workspace_seq is already in the db.
+	 * Postcondition:
+	 * 		it gets a new ID.
+	 * Return values:
+	 * 		the next available ID, or -1 if not possible to get one.	
+	 */
 	private int getAvailableWorkspaceID(){
 		//get next ID from sequence
 		String sq = "SELECT workspace_seq.NEXTVAL from dual";
@@ -204,6 +214,20 @@ public class LLMEcosystem
 		return -1;
 	}
 
+	/* createWorkspace()
+	 * Method designed to create a Workspace. The creator is added as Admin.
+	 * Precondition: 
+	 * 		the connection is active
+	 * 		workspace_seq is already in the db.
+	 * 		UserID of creator exists in table User.
+	 * 
+	 * Postcondition:
+	 * 		new rows marching are inserted into Workspace and UserWorkspace.
+	 * 		Transaction is rolled back if either insert fails.
+	 * 
+	 * Return values:
+	 * 		None
+	 */
 	private void createWorkspace(){
 		try{
 			System.out.println("Enter userID of the creator:");
@@ -288,7 +312,7 @@ public class LLMEcosystem
 			}
 
 			catch(SQLException rollingbackE){
-				System.err.println("error rolling back.");
+				System.err.println("Error rolling back.");
 			}
 
 			System.err.println("Error creating the workspace.");
@@ -296,6 +320,16 @@ public class LLMEcosystem
 		}
 	}
 
+	/* modifyWorkspace()
+	 * Method designed to update the name or visibility of an existing workspace.
+	 * Precondition: 
+	 * 		the connection to the db is active
+	 *
+	 * Postcondition:
+	 * 		If workspaceID given by user is found, it is updated
+	 * Return values:
+	 * 		None	
+	 */
 	private void modifyWorkspace(){
 		try{
 			System.out.println("Enter WorkspaceId to modify:");
@@ -347,7 +381,22 @@ public class LLMEcosystem
 			System.err.println(e.getMessage());
 		}
 	}
-
+	
+	/* userBelongsWorkspace(UserID, WorkspaceID)
+	 * Method designed to check if user belongs to a workspace.
+	 * 
+	 * Parameters:
+	 * 		UserID: ID of user being checked.	
+	 * 		WorkspaceID: ID of the workspace being checked.
+	 * Precondition: 
+	 * 		the connection to the db is active
+	 * 		Table UserWorkspace is created.
+	 *
+	 * Postcondition:
+	 * 		None
+	 * Return values:
+	 * 		Boolean, wheter the user belongs to the workspace or not.	
+	 */
 	private boolean userBelongsWorkspace(int UserID, int WorkspaceID){
 		try{
 			String checkUserWorkspace = "SELECT COUNT(*) AS Total From UserWorkspace " +
@@ -387,6 +436,22 @@ public class LLMEcosystem
 		return false;
 	}
 
+	/* moveConversationToWorkspace()
+	 * Method designed to move a conversation to a workspace.
+	 * 
+	 * Parameters:
+	 * 		None.
+	 * 
+	 * Precondition: 
+	 * 		the connection to the db is active
+	 * 		Workspace exists
+	 *		
+	 * Postcondition:
+	 * 		conversation is updated if the user belongs to workspace and 
+	 * 		the conversation belongs to user.
+	 * Return values:
+	 * 		None
+	 */
 	private void moveConversationToWorkspace() {
 		try{
 			System.out.println("Enter UserID:");
@@ -444,6 +509,17 @@ public class LLMEcosystem
 	 * ====================================================== 
 	 * Persona management -- functionality 4
 	 */
+
+	/* getAvailablePersonaID()
+	 * Method designed to get the next available PersonaID from the Oracle sequence.
+	 * Precondition: 
+	 * 		the connection is active
+	 * 		persona_seq is already in the db.
+	 * Postcondition:
+	 * 		it gets a new ID.
+	 * Return values:
+	 * 		the next available ID, or -1 if not possible to get one.	
+	 */
 	private int getAvailablePersonaID(){
 		//get next ID from sequence
 		String sq = "SELECT persona_seq.NEXTVAL from dual";
@@ -469,6 +545,18 @@ public class LLMEcosystem
 		return -1;
 	}
 
+	/* createPersona()
+	 * Method designed to create a Persona.
+	 * Precondition: 
+	 * 		the connection is active
+	 * 		Persona_seq is already in the db.
+	 * 
+	 * Postcondition:
+	 * 		new persona starts with versionID = 1 and deleteStatus = 0.
+	 * 
+	 * Return values:
+	 * 		None
+	 */
 	private void createPersona(){
 		try{
 			int PersonaID = getAvailablePersonaID();
@@ -516,6 +604,23 @@ public class LLMEcosystem
 			System.err.println(e.getMessage());
 		}
 	}
+
+	/* activeConversations()
+	 * Method designed to count the number of conversations using a Persona.
+	 * Parameters:
+	 * 		PersonaID: ID of persona being checked.	
+	 * 		versionID: ID of the version being checked.
+	 * Precondition: 
+	 * 		the connection is active
+	 * 		conversation table exists
+	 * 
+	 * Postcondition:
+	 *		None
+	 *  
+	 * Return values:
+	 * 		Number of active conversations using the PersonaID and versionID
+	 * 		or -1 if the count goes wrong.
+	 */
 	private int activeConversations(int PersonaID, int versionID){
 		try{
 			String countActive = 
@@ -552,6 +657,18 @@ public class LLMEcosystem
 		return -1;
 	}
 
+	/* deletePersona()
+	 * Method designed to delete a Persona.
+	 * Precondition: 
+	 * 		the connection is active
+	 * 		Persona is already in the db.
+	 * 
+	 * Postcondition:
+	 * 		No deletion if the persona version is used in more than 5 conversations.
+	 * 		DeletedStatus is set to 1.
+	 * Return values:
+	 * 		None
+	 */
 	private void deletePersona(){
 		try{
 			System.out.println("Enter PersonaID to delete:");
