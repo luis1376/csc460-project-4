@@ -1550,13 +1550,13 @@ public class LLMEcosystem
 			case "2":
 				 System.out.print("UserID to update: ");
 				 int userId = Integer.parseInt(scanner.nextLine());
-				 System.out.print("New Name (leave blank to keep current): ");
+				 System.out.print("New Name: ");
 				 String newName = scanner.nextLine();
-				 System.out.print("New Email (leave blank to keep current): ");
+				 System.out.print("New Email: ");
 				 String newEmail = scanner.nextLine();
-				 System.out.print("New Preferred UI (leave blank to keep current): ");
+				 System.out.print("New Preferred UI Language: ");
 				 String newUI = scanner.nextLine();
-				 System.out.print("New TierID (leave blank to keep current): ");
+				 System.out.print("New TierID: ");
 				 String tierInput = scanner.nextLine();
 				 int newTierId = tierInput.isEmpty() ? -1 : Integer.parseInt(tierInput);
 				 updateUser(userId, newName, newEmail, newUI, newTierId);
@@ -1582,8 +1582,7 @@ public class LLMEcosystem
 	{
 		System.out.println("\n--- Conversations & Messages ---");
 		System.out.println("1. Start New Conversation");
-		System.out.println("2. Add Message to Conversation");
-		System.out.println("3. Update Message Feedback");
+		System.out.println("2. Update Message Feedback");
 		System.out.print("Choice: ");
 		String sub = scanner.nextLine().trim();
 		try
@@ -1594,9 +1593,6 @@ public class LLMEcosystem
 				startConversation();
 				break;
 			case "2":
-				addMessageToConversation();
-				break;
-			case "3":
 				updateMessageFeedback();
 				break;
 			default:
