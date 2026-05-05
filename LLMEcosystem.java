@@ -79,7 +79,7 @@ public class LLMEcosystem
 	*/
 	public void addUser(String name, String email, String preferredUI) {
 		String insertStmt = "INSERT INTO User (Name, Email, preferredUI, DateCreated, TierID) "
-							+ "VALUES (user_seq.NEXTVAL, ?,  ?, ?, SYSDATE, 1)";
+							+ "VALUES (user_seq.NEXTVAL, ?, ?, ?, SYSDATE, 1)";
 		try {
 			PreparedStatement stmt = conn.prepareStatement(insertStmt);
 			stmt.setString(1, name);
@@ -104,13 +104,13 @@ public class LLMEcosystem
 	* @return None
 	* @note   dateCreated & UserID fields remain unchanged
 	*/
-	public void updateUser(int UserID, String newName, String newEmail, String preferredUI, int tierID) throws SQLException {
+	public void updateUser(int UserID, String newName, String newEmail, String newPreferredUI, int newTierID) throws SQLException {
 		String updateQuery = "UPDATE Users SET Name = ?, Email = ?, preferredUI = ?, tierID = ? WHERE UserID = ?";
 		PreparedStatement stmt = conn.prepareStatement(updateQuery);
 		stmt.setString(1,newName); 
 		stmt.setString(2, newEmail);
-		stmt.setString(3, preferredUI);
-		stmt.setInt(4, tierID);
+		stmt.setString(3, newPreferredUI);
+		stmt.setInt(4, newTierID);
 		stmt.setInt(5, UserID);
 		stmt.executeUpdate();
 	}
@@ -149,16 +149,58 @@ public class LLMEcosystem
 	/**
 	 * ====================================================== 
 	 * Handle Conversations & messages -- functionality 2
+	 * startConversation()
+	 * updateMessageFeedback()
 	 */
-	// TODO
-	private void startConversation()
-	{
-		System.out.println("TODO: startConversation");
-	}
+	
+	// starts a new conversation in the LLM database, optionally adding a persona to it
+	private void startConversation() throws SQLException {
+		
+		System.out.println("Please enter UserID: "); // id of user starting conversation
+		int uID = scanner.nextInt();
+		scanner.nextLine();
 
-	private void addMessageToConversation()
-	{
-		System.out.println("TODO: addMessageToConversation");
+		System.out.println("Please enter conversation title: ");
+		String cTitle = scanner.nextLine().trim();
+
+		// when a user starts a conversation, they can attach a persona to it
+		System.out.println("Available personas: ");
+		String pQuery = "SELECT PersonaID, Name, VersionID FROM Persona WHERE deletedStatus = 0"; // only select active personas
+		Statement stmt1 = conn.createStatement();
+		ResultSet result = stmt1.executeQuery(pQuery);
+		boolean personasAvailable = false;
+		while(result.next()) {
+			personasAvailable = true;
+			System.out.println("Persona ID: " + result.getInt("PersonaID") + "\nName: " + result.getString("Name") + "\nVersionID: " + result.getInt("VersionID"));
+		}
+		System.out.println("Would you like to add a persona to this conversation? (y/n)");
+		String answer = scanner.nextLine();
+		
+		if( (answer.equals("y") && !personasAvailable) || answer.equals("n")) {
+			System.out.println("No personas selected or none available. Adding conversation...\n");
+			String insQuery = "INSERT INTO Conversation (ConversationID, title, DateCreated, versionID, personaID, UserID, WorkspaceID) "
+							+ "VALUES (conv_seq.NEXTVAL, ?, SYSDATE, NULL, NULL, ?, NULL)";
+			PreparedStatement stmt2 = conn.prepareStatement(insQuery);
+			stmt2.setString(1, cTitle); 
+			stmt2.setInt(2, uID);
+			stmt2.executeUpdate();
+		}
+		else if(answer.equals("y") && personasAvailable) { 
+			System.out.println("Input <personaID> <versionID> of persona you'd like:\n");
+			int pID = scanner.nextInt();
+			int vID = scanner.nextInt();
+			String insQuery = "INSERT INTO Conversation (ConversationID, title, DateCreated, versionID, personaID, UserID, WorkspaceID) "
+							+ "VALUES (conv_seq.NEXTVAL, ?, SYSDATE, ?, ?, ?, NULL)";
+			PreparedStatement stmt2 = conn.prepareStatement(insQuery);
+			stmt2.setString(1, cTitle); 
+			stmt2.setInt(2, vID);
+			stmt2.setInt(3, pID);
+			stmt2.setInt(4, uID);
+			stmt2.executeUpdate();
+		}
+		else {
+			System.out.println("Must select y or n. Conversation failed to be created.");
+		}
 	}
 
 	private void updateMessageFeedback()
