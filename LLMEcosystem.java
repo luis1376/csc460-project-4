@@ -921,22 +921,32 @@ public class LLMEcosystem
 	/**
 	 * ======================================================
 	 * Billing operations -- functionality 7
+	 * - generateInvoice()
+	 * - markInvoicePaid()
 	 */
 
-	/**
-	 * generateInvoice() Creates a new unpaid invoice for a user based on their
-	 * current membership tier fee.
+	/*
+	 * generateInvoice()
+	 *
+	 * Purpose: Reads a UserID from the user, looks up that user's monthly tier fee, and inserts a new unpaid invoice into the Invoice table.
+	 *
+	 * Parameters: none 
+	 *
+	 * Return value: none
+	 *
+	 * Pre-condition:  A valid UserID and the user has a membership tier assigned
+	 * Post-condition: A new row is added to Invoice with Status = 'unpaid' and Amount set to the user's current tier fee.
 	 */
 	private void generateInvoice() throws SQLException
 	{
 		System.out.print("Enter UserID: ");
-		int userId = Integer.parseInt(scanner.nextLine().trim());
+		int userId = Integer.parseInt(scanner.nextLine().trim()); // ID of the user being billed
 
-		// look up the user's tier fee
+		// join Users to MembershipTier to get the monthly fee for this user's tier
 		String feeSql = "SELECT mt.Fee FROM Users u "
 				+ "JOIN MembershipTier mt ON u.TierID = mt.TierID "
 				+ "WHERE u.UserID = ?";
-		double fee;
+		double fee; // monthly fee amount pulled from MembershipTier
 		try (PreparedStatement stmt = conn.prepareStatement(feeSql))
 		{
 			stmt.setInt(1, userId);
@@ -948,6 +958,7 @@ public class LLMEcosystem
 			}
 		}
 
+		// "Date" is quoted because DATE is a reserved word in Oracle SQL
 		String insertSql = "INSERT INTO Invoice (InvoiceID, UserID, Amount, \"Date\", Status) "
 				+ "VALUES (invoice_seq.NEXTVAL, ?, ?, SYSDATE, 'unpaid')";
 		try (PreparedStatement stmt = conn.prepareStatement(insertSql, new String[]{ "InvoiceID" }))
@@ -958,25 +969,35 @@ public class LLMEcosystem
 			try (ResultSet rs = stmt.getGeneratedKeys())
 			{
 				if (rs.next())
-					System.out.printf("Invoice generated (ID: %d) for $%.2f — status: unpaid%n",
+					System.out.printf("Invoice generated (ID: %d) for $%.2f -- status: unpaid%n",
 							rs.getInt(1), fee);
 			}
 		}
 	}
 
-	/**
-	 * markInvoicePaid() Marks an existing invoice as "paid."
+	/*
+	 * markInvoicePaid()
+	 *
+	 * Purpose: Reads an InvoiceID from the user and sets that invoice's Status to 'paid'. Only updates if its currently 'unpaid'.
+	 *
+	 * Parameters: none 
+	 *
+	 * Return value: none
+	 *
+	 * Pre-condition:  A valid InvoiceID is entered and the Invoice table exists.
+	 * Post-condition: The matching invoice's Status is set to 'paid', or the user is told the invoice was not found.
 	 */
 	private void markInvoicePaid() throws SQLException
 	{
 		System.out.print("Enter InvoiceID: ");
-		int invoiceId = Integer.parseInt(scanner.nextLine().trim());
+		int invoiceId = Integer.parseInt(scanner.nextLine().trim()); // ID of the invoice to mark paid
 
+		// guard on Status = 'unpaid' so already-paid invoices are not touched
 		String sql = "UPDATE Invoice SET Status = 'paid' WHERE InvoiceID = ? AND Status = 'unpaid'";
 		try (PreparedStatement stmt = conn.prepareStatement(sql))
 		{
 			stmt.setInt(1, invoiceId);
-			int rows = stmt.executeUpdate();
+			int rows = stmt.executeUpdate(); 
 			if (rows > 0)
 				System.out.println("Invoice marked as paid.");
 			else
@@ -987,15 +1008,29 @@ public class LLMEcosystem
 	/**
 	 * ======================================================
 	 * Support Ticket Lifecycle -- functionality 8
+	 * - createSupportTicket()
+	 * - assignTicketToAgent()
+	 * - updateTicketResolution()
 	 */
 
-	/**
-	 * createSupportTicket() Opens a new support ticket for a user and assigns it
-	 * to an agent.
+	/*
+	 * createSupportTicket()
+	 *
+	 * Purpose: Lists available support agents, then reads a UserID, topic, and
+	 *          AgentID from the user and inserts a new open ticket into the
+	 *          SupportTicket table.
+	 *
+	 * Parameters: none 
+	 * Return value: none
+	 *
+	 * Pre-condition:  Valid UserID and AgentID are entered, both the Users and
+	 *                 SupportAgent tables have matching rows.
+	 * Post-condition: A new row is added to SupportTicket with DateOpened = today
+	 *                 and DateClosed.
 	 */
 	private void createSupportTicket() throws SQLException
 	{
-		// show available agents
+		// show every agent so the user can pick a valid AgentID
 		String agentSql = "SELECT AgentID, Name FROM SupportAgent ORDER BY AgentID";
 		try (PreparedStatement stmt = conn.prepareStatement(agentSql);
 			 ResultSet rs = stmt.executeQuery())
@@ -1006,11 +1041,11 @@ public class LLMEcosystem
 		}
 
 		System.out.print("Enter UserID: ");
-		int userId = Integer.parseInt(scanner.nextLine().trim());
+		int userId  = Integer.parseInt(scanner.nextLine().trim()); // user opening the ticket
 		System.out.print("Enter Topic: ");
-		String topic = scanner.nextLine().trim();
+		String topic  = scanner.nextLine().trim();                 // short description
 		System.out.print("Enter AgentID: ");
-		int agentId = Integer.parseInt(scanner.nextLine().trim());
+		int agentId = Integer.parseInt(scanner.nextLine().trim()); // agent handling the ticket
 
 		String insertSql = "INSERT INTO SupportTicket (TicketID, UserID, AgentID, Topic, DateOpened) "
 				+ "VALUES (ticket_seq.NEXTVAL, ?, ?, ?, SYSDATE)";
@@ -1028,15 +1063,27 @@ public class LLMEcosystem
 		}
 	}
 
-	/**
-	 * assignTicketToAgent() Reassigns an existing open ticket to a different agent.
+	/*
+	 * assignTicketToAgent()
+	 *
+	 * Purpose: Reads a TicketID and a new AgentID from the user and reassigns
+	 *          the ticket to the chosen agent. 
+	 *
+	 * Parameters: none 
+	 *
+	 * Return value: none
+	 *
+	 * Pre-condition:  A valid TicketID for an open ticket and a valid AgentID
+	 *                 are entered.
+	 * Post-condition: The ticket's AgentID is updated, or the user is told the
+	 *                 ticket was not found or is already closed.
 	 */
 	private void assignTicketToAgent() throws SQLException
 	{
 		System.out.print("Enter TicketID: ");
-		int ticketId = Integer.parseInt(scanner.nextLine().trim());
+		int ticketId = Integer.parseInt(scanner.nextLine().trim()); // ticket to reassign
 
-		// show available agents
+		// show every agent so the user can pick a valid AgentID
 		String agentSql = "SELECT AgentID, Name FROM SupportAgent ORDER BY AgentID";
 		try (PreparedStatement stmt = conn.prepareStatement(agentSql);
 			 ResultSet rs = stmt.executeQuery())
@@ -1047,14 +1094,15 @@ public class LLMEcosystem
 		}
 
 		System.out.print("Enter new AgentID: ");
-		int agentId = Integer.parseInt(scanner.nextLine().trim());
+		int agentId = Integer.parseInt(scanner.nextLine().trim()); // agent to assign the ticket to
 
+		// DateClosed IS NULL ensures we only touch open tickets
 		String sql = "UPDATE SupportTicket SET AgentID = ? WHERE TicketID = ? AND DateClosed IS NULL";
 		try (PreparedStatement stmt = conn.prepareStatement(sql))
 		{
 			stmt.setInt(1, agentId);
 			stmt.setInt(2, ticketId);
-			int rows = stmt.executeUpdate();
+			int rows = stmt.executeUpdate(); 
 			if (rows > 0)
 				System.out.println("Ticket assigned to agent.");
 			else
@@ -1062,29 +1110,43 @@ public class LLMEcosystem
 		}
 	}
 
-	/**
-	 * updateTicketResolution() Closes a ticket with a resolution status and
-	 * displays the resolution duration.
+	/*
+	 * updateTicketResolution()
+	 *
+	 * Purpose: Reads a TicketID and resolution status from the user, closes the
+	 *          ticket by setting DateClosed to today and Status to the given
+	 *          value.
+	 *
+	 * Parameters: none 
+	 *
+	 * Return value: none
+	 *
+	 * Pre-condition:  A valid TicketID for an open ticket is entered and status
+	 *                 is either 'Resolved' or 'Escalated'.
+	 * Post-condition: DateClosed and Status are set on the ticket.
 	 */
 	private void updateTicketResolution() throws SQLException
 	{
 		System.out.print("Enter TicketID: ");
-		int ticketId = Integer.parseInt(scanner.nextLine().trim());
+		int ticketId = Integer.parseInt(scanner.nextLine().trim()); // ticket being closed
 		System.out.print("Enter resolution status (Resolved/Escalated): ");
-		String status = scanner.nextLine().trim();
+		String status = scanner.nextLine().trim(); // final outcome of the ticket
+
+		// validate before hitting the DB
 		if (!status.equals("Resolved") && !status.equals("Escalated"))
 		{
 			System.out.println("Status must be 'Resolved' or 'Escalated'.");
 			return;
 		}
 
+		// DateClosed IS NULL guards against closing an already-closed ticket
 		String updateSql = "UPDATE SupportTicket SET Status = ?, DateClosed = SYSDATE "
 				+ "WHERE TicketID = ? AND DateClosed IS NULL";
 		try (PreparedStatement stmt = conn.prepareStatement(updateSql))
 		{
 			stmt.setString(1, status);
 			stmt.setInt(2, ticketId);
-			int rows = stmt.executeUpdate();
+			int rows = stmt.executeUpdate(); 
 			if (rows == 0)
 			{
 				System.out.println("Ticket not found or is already closed.");
@@ -1092,7 +1154,7 @@ public class LLMEcosystem
 			}
 		}
 
-		// display duration in days
+		// compute duration as the difference in days between open and close dates
 		String durSql = "SELECT TRUNC(DateClosed) - TRUNC(DateOpened) AS DurationDays "
 				+ "FROM SupportTicket WHERE TicketID = ?";
 		try (PreparedStatement stmt = conn.prepareStatement(durSql))
