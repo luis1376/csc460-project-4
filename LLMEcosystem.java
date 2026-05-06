@@ -1673,7 +1673,7 @@ public class LLMEcosystem
 			System.out.println("3.  Workspace Organization");
 			System.out.println("4.  Persona Management");
 			System.out.println("5.  Prompt Library (add/update)");
-			System.out.println("6.  Subscription Tracking (update tier, message limit)");
+			System.out.println("6.  Subscription Tracking (update tier)");
 			System.out.println("7.  Billing Operations");
 			System.out.println("8.  Support Ticket Lifecycle");
 			System.out.println("\n--- REQUIRED QUERIES ---");
