@@ -152,3 +152,12 @@ CREATE TABLE UserBookmarks (
     MessageID     INTEGER REFERENCES Message(MessageID) ON DELETE CASCADE,
     PRIMARY KEY (UserID, MessageID)
 );
+
+-- necessary pre-population of membership tiers and support agents
+INSERT INTO MembershipTier (TierID, TierName, MaxMsgPerDay, Fee, ProAccess) VALUES (1, 'Free', 10, 0.00, 0);
+INSERT INTO MembershipTier (TierID, TierName, MaxMsgPerDay, Fee, ProAccess) VALUES (2, 'Plus', 100, 9.99, 1);
+INSERT INTO MembershipTier (TierID, TierName, MaxMsgPerDay, Fee, ProAccess) VALUES (3, 'Enterprise', 1000, 25.99, 1);
+
+INSERT INTO SupportAgent (AgentID, SName) VALUES (1, 'Bob');
+INSERT INTO SupportAgent (AgentID, SName) VALUES (2, 'Karen');
+INSERT INTO SupportAgent (AgentID, SName) VALUES (3, 'John');
