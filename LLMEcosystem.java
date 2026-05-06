@@ -1480,14 +1480,14 @@ public class LLMEcosystem
 		int userId = Integer.parseInt(scanner.nextLine().trim());
 
 		String sql = """
-					SELECT c.Title, m.MTime, m.Content
-					FROM UserBookmarks ub
-					JOIN Message m ON ub.MessageID = m.MessageID
-					JOIN Conversation c ON m.ConversationID = c.ConversationID
-					WHERE ub.UserID = ?
-					ORDER BY m.MTime DESC
-				""";
-
+			SELECT c.Title, m.MTime, m.Content
+			FROM UserBookmarks ub
+			JOIN Message m ON ub.MessageID = m.MessageID
+			JOIN Conversation c ON m.ConversationID = c.ConversationID
+			WHERE ub.UserID = ?
+			ORDER BY m.MTime DESC
+		""";
+		
 		try (PreparedStatement stmt = conn.prepareStatement(sql))
 		{
 			stmt.setInt(1, userId);
@@ -1520,15 +1520,15 @@ public class LLMEcosystem
 	private void queryUnpaidInvoices() throws SQLException
 	{
 		String sql = """
-					SELECT u.Email, SUM(i.Amount) AS TotalOwed, MAX(c.DateCreated) AS LastConversationDate
-					FROM Users u
-					JOIN Invoice i ON u.UserID = i.UserID
-					LEFT JOIN Conversation c ON u.UserID = c.UserID
-					WHERE i.IStatus = 'unpaid'
-					GROUP BY u.Email
-					ORDER BY TotalOwed DESC
-				""";
-
+			SELECT u.Email, SUM(i.Amount) AS TotalOwed, MAX(c.DateCreated) AS LastConversationDate
+			FROM Users u
+			JOIN Invoice i ON u.UserID = i.UserID
+			LEFT JOIN Conversation c ON u.UserID = c.UserID
+			WHERE i.IStatus = 'unpaid'
+			GROUP BY u.Email
+			ORDER BY TotalOwed DESC
+		""";
+		
 		try (Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(sql))
 		{
 			System.out.println("\nUsers with Unpaid Invoices:");
@@ -1549,9 +1549,9 @@ public class LLMEcosystem
 	/**
 	 * queryMostHelpfulPersona() Identify the “Most Helpful” Persona: List the
 	 * persona name that has received the highest percentage of “Thumbs Up” feedback
-	 * across all conversations linked to it Note: feedback table stores Rating 1-10
-	 * so for now I'm just considering "Thumbs Up" as Rating >= 8
-	 * 
+	 * across all conversations linked to it.
+   *
+	 * @note   isThumbsUp is just 1 if thumbs up and 0 if not
 	 * @return N/A
 	 * 
 	 * @pre
@@ -1605,14 +1605,14 @@ public class LLMEcosystem
 		int userId = Integer.parseInt(scanner.nextLine().trim());
 
 		String sql = """
-					SELECT w.WName AS WorkspaceName, COUNT(uw2.UserID) AS MemberCount
-					FROM Workspace w
-					JOIN UserWorkspace uwAdmin ON w.WorkspaceID = uwAdmin.WorkspaceID
-					LEFT JOIN UserWorkspace uw2 ON w.WorkspaceID = uw2.WorkspaceID
-					WHERE uwAdmin.UserID = ? AND uwAdmin.UWRole = 'Admin'
-					GROUP BY w.WName
-					ORDER BY w.WName
-				""";
+			SELECT w.WName AS WorkspaceName, COUNT(uw2.UserID) AS MemberCount
+			FROM Workspace w
+			JOIN UserWorkspace uwAdmin ON w.WorkspaceID = uwAdmin.WorkspaceID
+			LEFT JOIN UserWorkspace uw2 ON w.WorkspaceID = uw2.WorkspaceID
+			WHERE uwAdmin.UserID = ? AND uwAdmin.UWRole = 'Admin'
+			GROUP BY w.WName
+			ORDER BY w.WName
+		""";
 
 		try (PreparedStatement stmt = conn.prepareStatement(sql))
 		{
