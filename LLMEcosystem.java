@@ -158,7 +158,7 @@ public class LLMEcosystem
 		boolean failed = checkUnpaidInvoicesOrSupportTickets(UserID);
 		if (failed)
 		{
-			System.out.println("Cannot delete user account: invoice is unpaid or a support ticket is open");
+			System.out.println("Cannot delete user account: invoice is unpaid or a support ticket is open, or user does not exist.");
 			return;
 		}
 		String deleteStmt = "DELETE FROM Users WHERE UserID = ?"; // sql "ON DELETE CASCADE" in table creation will
