@@ -6,6 +6,11 @@
 2. Run --       `java LLMEcosystem`
 3. Program --   Follow the on screen UI to test any funcitonalities (1..8) or queries (9..12) provide by the program
 
+NOTE: Don't exit using ctrl c, as it has been causing problems with transactions and may be unable
+	  to add users after you do this. Please use the 0 key selection to exit, and properly close the connection.
+	  Because of the many id prompts, reccomended to have two terminals side by side, one with sqlpl loaded to see the 
+	  tables and use correct IDs and the other to run the application program.
+
 
 # WORKLOAD DISTRIBUTION BETWEEN TEAM MEMBERS
 Luis Miranda:
