@@ -1595,7 +1595,7 @@ public class LLMEcosystem
 					GROUP BY p.PName
 					HAVING COUNT(f.FeedbackID) > 0
 					ORDER BY Percentage DESC
-					FETCH FIRST 1 ROW ONLY;
+					FETCH FIRST 1 ROW ONLY
 				""";
 		try (Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(sql))
 		{
