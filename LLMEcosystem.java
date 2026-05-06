@@ -1583,6 +1583,7 @@ public class LLMEcosystem
 	private void queryMostHelpfulPersona() throws SQLException
 	{
 		String sql = """
+				SELECT * FROM (
 					SELECT p.PName,
 				     			COUNT(f.FeedbackID) AS TotalFeedback,
 				     			SUM(f.IsThumbsUp) AS ThumbsUpCount,
@@ -1595,7 +1596,7 @@ public class LLMEcosystem
 					GROUP BY p.PName
 					HAVING COUNT(f.FeedbackID) > 0
 					ORDER BY Percentage DESC
-					FETCH FIRST 1 ROW ONLY
+				) WHERE ROWNUM = 1
 				""";
 		try (Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(sql))
 		{
