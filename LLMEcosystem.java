@@ -165,8 +165,13 @@ public class LLMEcosystem
 																	// delete user's messages and conversations
 		PreparedStatement stmt = conn.prepareStatement(deleteStmt);
 		stmt.setInt(1, UserID);
-		stmt.executeUpdate();
-		System.out.printf("User with ID %d deleted successfully", UserID);
+		int rowsDeleted = stmt.executeUpdate();
+
+        if (rowsDeleted == 0) {
+            System.out.printf("Error: User with ID %d does not exist.%n", UserID);
+        } else {
+            System.out.printf("User with ID %d deleted successfully.%n", UserID);
+        }
 	}
 
 	/**
