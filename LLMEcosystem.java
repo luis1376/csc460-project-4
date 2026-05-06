@@ -1786,7 +1786,7 @@ public class LLMEcosystem
 				System.out.print("New Preferred UI Language: ");
 				String newUI = scanner.nextLine();
 				int newTierId = -1;
-				while (newTierId < 1)
+				while (newTierId < 1 || newTierID > 3)
 				{
 					System.out.print("New TierID (must be 1,2,3...): ");
 					String input = scanner.nextLine();
