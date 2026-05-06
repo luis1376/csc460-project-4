@@ -95,8 +95,8 @@ CREATE TABLE Feedback (
     IsThumbsUp    INTEGER NOT NULL CHECK (IsThumbsUp IN (0,1)),   -- 1="thumbs up", 0="thumbs down"
     FText          VARCHAR2(500),
     FDate          DATE NOT NULL,
-    UserID        INTEGER NOT NULL REFERENCES Users(UserID),
-    MessageID     INTEGER NOT NULL UNIQUE REFERENCES Message(MessageID)
+    UserID        INTEGER NOT NULL REFERENCES Users(UserID) ON DELETE CASCADE,
+    MessageID     INTEGER NOT NULL UNIQUE REFERENCES Message(MessageID) ON DELETE CASCADE
 );
 
 CREATE TABLE PromptTemplate (
@@ -104,7 +104,7 @@ CREATE TABLE PromptTemplate (
     Category      VARCHAR2(20),
     Visibility    VARCHAR2(10) CHECK (Visibility IN ('private','shared')),
     Prompt        VARCHAR2(250) NOT NULL,
-    UserID        INTEGER NOT NULL REFERENCES Users(UserID)
+    UserID        INTEGER NOT NULL REFERENCES Users(UserID) ON DELETE CASCADE
 );
 
 CREATE TABLE Invoice (
@@ -122,7 +122,7 @@ CREATE TABLE SupportAgent (
 
 CREATE TABLE SupportTicket (
     TicketID      INTEGER PRIMARY KEY,
-    UserID        INTEGER NOT NULL REFERENCES Users(UserID),
+    UserID        INTEGER NOT NULL REFERENCES Users(UserID) ON DELETE CASCADE,
     AgentID       INTEGER NOT NULL REFERENCES SupportAgent(AgentID),
     Topic         VARCHAR2(50) NOT NULL,
     DateOpened    DATE NOT NULL,
