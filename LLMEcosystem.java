@@ -5,7 +5,7 @@
  * 			Zoltan Kotha			zkotha@arizona.edu
  * 			Ian Sanchez Lopez		iansanchezl@arizona.edu
  * 	Course: 
- * 			CSC460
+ * 			CSC460 Spring 2026
  * 	Assignment: 
  * 			Program #4: Database Design and Implementation
  * 	Instructors/TAs: 
@@ -13,17 +13,15 @@
  * 	Due Date: 
  * 			5/5/2026 2:00 PM
  * 	Problem Desc: 
- * 			Database-driven information management system for an LLM User-Facing Ecosystem
+ * 			Database-driven information management system for an LLM User-Facing Ecosystem, using JDBC
+ * 			as a front-end for the user to interact with SQL and the Oracle DBMS on aloe.cs.arizona.edu
  * 	Additional Solution info:
- * 			N/A
+ * 			Primarily uses the PreparedStatement object and its associated methods to set up SQL queries 
+  			and insert user-provided parameters into the appropriate queries to be run. 
  * 	Operational Requirements:
- *          Java 8+, input file must be readable mbox format
- *          Usage: TODO
- *          Output: TODO
- * 	Data Structures: 
- * 			N/A
- * 	File Reading: 
- * 			N/A
+ *          Java 8+, Oracle JDBC driver on classpath
+ *  Usage: 
+ * 			java LLMEcosystem
  */
 
 import java.sql.*;
@@ -36,7 +34,7 @@ public class LLMEcosystem
 	private static final String DB_USER = "shalevancleve";
 	private static final String DB_PASS = "a2532";
 
-	private static Connection conn;
+	private Connection conn;
 	private Scanner scanner;
 
 	public LLMEcosystem()
@@ -188,8 +186,7 @@ public class LLMEcosystem
 	{
 
 		System.out.println("Please enter UserID: "); // id of user starting conversation
-		int uID = scanner.nextInt();
-		scanner.nextLine();
+		int uID = Integer.parseInt(scanner.nextLine().trim());
 
 		System.out.println("Please enter conversation title: ");
 		String cTitle = scanner.nextLine().trim();
@@ -223,8 +220,8 @@ public class LLMEcosystem
 		else if (answer.equals("y") && personasAvailable)
 		{
 			System.out.println("Input <personaID> <versionID> of persona you'd like:\n");
-			int pID = scanner.nextInt();
-			int vID = scanner.nextInt();
+			int pID = Integer.parseInt(scanner.nextLine().trim());
+			int vID = Integer.parseInt(scanner.nextLine().trim());
 			String insQuery = "INSERT INTO Conversation (ConversationID, Title, DateCreated, VersionID, PersonaID, UserID, WorkspaceID, IsActive) "
 					+ "VALUES (conv_seq.NEXTVAL, ?, SYSDATE, ?, ?, ?, NULL, 1)";
 			PreparedStatement stmt2 = conn.prepareStatement(insQuery);
@@ -251,16 +248,12 @@ public class LLMEcosystem
 	private void updateMessageFeedback() throws SQLException
 	{
 		System.out.println("Please enter userID to see messages: ");
-		int uID = scanner.nextInt();
-		scanner.nextLine();
+		int uID = Integer.parseInt(scanner.nextLine().trim());
 
 		System.out.println("Available messages to give feedback to: ");
-		String msgQuery = "SELECT MessageID, Content FROM Conversation c JOIN Message m ON c.ConversationID = m.ConversationID WHERE c.UserID = ? AND m.SenderRole = 'AI'"; // Only
-																																											// AI
-																																											// messages
-																																											// can
-																																											// get
-																																											// feedback
+		// only AI messages can receive feedback
+		String msgQuery = "SELECT MessageID, Content FROM Conversation c JOIN Message m ON c.ConversationID = m.ConversationID WHERE c.UserID = ? AND m.SenderRole = 'AI'"; 
+																									
 		PreparedStatement stmt = conn.prepareStatement(msgQuery);
 		stmt.setInt(1, uID);
 		ResultSet rs = stmt.executeQuery();
@@ -271,15 +264,13 @@ public class LLMEcosystem
 		}
 
 		System.out.println("Enter the MessageID you want to give feedback to: ");
-		int msgID = scanner.nextInt();
-		scanner.nextLine();
+		int msgID = Integer.parseInt(scanner.nextLine().trim());
 
 		System.out.println("Enter feedback text: ");
 		String feedback = scanner.nextLine();
 
 		System.out.println("Enter if message good or bad (1/0): ");
-		int rating = scanner.nextInt();
-		scanner.nextLine();
+		int rating = Integer.parseInt(scanner.nextLine().trim());
 
 		String chkQuery = "SELECT COUNT(*) FROM Feedback WHERE MessageID = ?"; // are there any feedback relations for
 																				// the message?
