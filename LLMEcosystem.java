@@ -166,6 +166,7 @@ public class LLMEcosystem
 		PreparedStatement stmt = conn.prepareStatement(deleteStmt);
 		stmt.setInt(1, UserID);
 		stmt.executeUpdate();
+		System.out.printf("User with ID %d deleted successfully", UserID);
 	}
 
 	/**
@@ -1792,7 +1793,6 @@ public class LLMEcosystem
 				System.out.print("UserID to delete: ");
 				int delUserId = Integer.parseInt(scanner.nextLine());
 				deleteUser(delUserId);
-				System.out.println("User deleted successfully (if no unpaid invoices or open support tickets).");
 				break;
 			default:
 				System.out.println("Invalid.");
