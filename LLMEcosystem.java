@@ -277,6 +277,41 @@ public class LLMEcosystem
 		    insStmt.executeUpdate();
 		}
 	}
+
+	/*
+	* Bookmarks a user's message for quick retrieval, by 
+	* adding it to a User-Message Relational table
+	*
+	* @param  None
+	* @return None
+	*/
+	private void bookmarkMessage() throws SQLException {
+	    System.out.print("Enter UserID: ");
+	    int uId = Integer.parseInt(scanner.nextLine().trim());
+	    System.out.print("Enter MessageID to bookmark: ");
+	    int msgId = Integer.parseInt(scanner.nextLine().trim());
+
+		String checkkSql = "SELECT COUNT(*) FROM Message m "
+                         + "JOIN Conversation c ON m.ConversationID = c.ConversationID "
+                         + "WHERE m.MessageID = ? AND c.UserID = ?"; // makes sure message belongs to user
+    	PreparedStatement checkStmt = conn.prepareStatement(checkSql)
+       	checkStmt.setInt(1, messageId);
+        checkStmt.setInt(2, userId);
+        ResultSet rs = checkStmt.executeQuery()
+        rs.next();
+        if (rs.getInt(1) == 0) {
+            System.out.println("Message not found or does not belong to this user.");
+            return;
+        }
+		
+	    String bookmarkSql = "INSERT INTO UserBookmarks (UserID, MessageID) VALUES (?, ?)";
+	    try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+	        stmt.setInt(1, userId);
+	        stmt.setInt(2, messageId);
+	        rows = stmt.executeUpdate();
+	        System.out.println("Message bookmarked successfully.");
+	    }
+	}
 	
 	/**
 	 * ====================================================== 
