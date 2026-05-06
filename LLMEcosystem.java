@@ -172,7 +172,7 @@ public class LLMEcosystem
 
 	/**
 	 * ====================================================== Handle Conversations &
-	 * messages -- functionality 2 startConversation() updateMessageFeedback()
+	 * messages -- functionality 2 startConversation() updateMessageFeedback() addMessageToConversation()
 	 */
 
 	/*
@@ -347,6 +347,32 @@ public class LLMEcosystem
 			stmt.setInt(2, msgId);
 			stmt.executeUpdate();
 			System.out.println("Message bookmarked successfully.");
+		}
+	}
+
+	private void addMessageToConversation() throws SQLException
+	{
+		System.out.print("UserID: ");
+		int uid = Integer.parseInt(scanner.nextLine().trim());
+		System.out.print("ConversationID: ");
+		int cid = Integer.parseInt(scanner.nextLine().trim());
+		System.out.print("SenderRole (User/AI): ");
+		String role = scanner.nextLine().trim();
+		if (!role.equals("User") && !role.equals("AI"))
+		{
+			System.out.println("SenderRole must be 'User' or 'AI'.");
+			return;
+		}
+		System.out.print("Message content: ");
+		String content = scanner.nextLine().trim();
+		int msgId = insertMessageIfWithinLimit(uid, cid, role, content);
+		if (msgId == -1)
+		{
+			System.out.println("Daily message limit exceeded. Message rejected.");
+		}
+		else
+		{
+			System.out.println("Message added with ID: " + msgId);
 		}
 	}
 
@@ -1787,32 +1813,6 @@ public class LLMEcosystem
 		}
 	}
 
-	private void addMessageToConversation() throws SQLException
-	{
-		System.out.print("UserID: ");
-		int uid = Integer.parseInt(scanner.nextLine().trim());
-		System.out.print("ConversationID: ");
-		int cid = Integer.parseInt(scanner.nextLine().trim());
-		System.out.print("SenderRole (User/AI): ");
-		String role = scanner.nextLine().trim();
-		if (!role.equals("User") && !role.equals("AI"))
-		{
-			System.out.println("SenderRole must be 'User' or 'AI'.");
-			return;
-		}
-		System.out.print("Message content: ");
-		String content = scanner.nextLine().trim();
-		int msgId = insertMessageIfWithinLimit(uid, cid, role, content);
-		if (msgId == -1)
-		{
-			System.out.println("Daily message limit exceeded. Message rejected.");
-		}
-		else
-		{
-			System.out.println("Message added with ID: " + msgId);
-		}
-	}
-
 	private void conversationSubMenu()
 	{
 		System.out.println("\n--- Conversations & Messages ---");
@@ -1970,7 +1970,6 @@ public class LLMEcosystem
 	{
 		System.out.println("\n--- Subscription Tracking ---");
 		System.out.println("1. Update User Subscription Tier");
-		System.out.println("2. Insert Message (with daily limit check)");
 		System.out.print("Choice: ");
 		String sub = scanner.nextLine().trim();
 		try
@@ -1983,27 +1982,6 @@ public class LLMEcosystem
 				int tid = Integer.parseInt(scanner.nextLine());
 				boolean ok = updateUserSubscription(uid, tid);
 				System.out.println(ok ? "Subscription updated" : "Update failed");
-			}
-			else if (sub.equals("2"))
-			{
-				System.out.print("UserID: ");
-				int uid = Integer.parseInt(scanner.nextLine());
-				System.out.print("ConversationID: ");
-				int cid = Integer.parseInt(scanner.nextLine());
-				System.out.print("SenderRole (User/AI): ");
-				String role = scanner.nextLine();
-				if (!role.equals("User") && !role.equals("AI"))
-				{
-					System.out.println("SenderRole must be 'User' or 'AI'.");
-					return;
-				}
-				System.out.print("Message content: ");
-				String msg = scanner.nextLine();
-				int msgId = insertMessageIfWithinLimit(uid, cid, role, msg);
-				if (msgId == -1)
-					System.out.println("Daily message limit exceeded. Message rejected.");
-				else
-					System.out.println("Message inserted with ID: " + msgId);
 			}
 			else
 			{
