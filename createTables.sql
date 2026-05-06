@@ -22,7 +22,6 @@ DROP SEQUENCE invoice_seq;
 DROP SEQUENCE feedback_seq;
 DROP SEQUENCE persona_seq;
 DROP SEQUENCE workspace_seq;
-DROP SEQUENCE agent_seq;
 
 -- sequences for auto-incrementing id attributes
 CREATE SEQUENCE user_seq      START WITH 1000 INCREMENT BY 1;
