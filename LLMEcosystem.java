@@ -1427,15 +1427,9 @@ public class LLMEcosystem
 	}
 
 	
+	// REQUIRED QUERIES ==========================================
 	
 	/*
-	 * Required queries
-	 * - queryBookmarkedMessages()
-	 * - queryUnpaidInvoices()
-	 * - queryMostHelpfulPersona()
-	 * - queryWorkspaceMembers()
-	 */
-	/**
 	 * queryBookmarkedMessages()
 	 * For a given User, list all their Bookmarked messages across all conversations, including the conversation title and the timestamp.
 	 * 
@@ -1450,12 +1444,12 @@ public class LLMEcosystem
 		int userId = Integer.parseInt(scanner.nextLine().trim());
 
 		String sql = """
-			SELECT c.Title, m.Time, m.Content
+			SELECT c.Title, m.MTime, m.Content
 			FROM UserBookmarks ub
 			JOIN Message m ON ub.MessageID = m.MessageID
 			JOIN Conversation c ON m.ConversationID = c.ConversationID
 			WHERE ub.UserID = ?
-			ORDER BY m.Time DESC
+			ORDER BY m.MTime DESC
 		""";
 		
 		try (PreparedStatement stmt = conn.prepareStatement(sql))
@@ -1494,7 +1488,7 @@ public class LLMEcosystem
 			FROM Users u
 			JOIN Invoice i ON u.UserID = i.UserID
 			LEFT JOIN Conversation c ON u.UserID = c.UserID
-			WHERE i.Status = 'unpaid'
+			WHERE i.IStatus = 'unpaid'
 			GROUP BY u.Email
 			ORDER BY TotalOwed DESC
 		""";
@@ -1519,8 +1513,8 @@ public class LLMEcosystem
 	/**
 	 * queryMostHelpfulPersona()
 	 * Identify the “Most Helpful” Persona: List the persona name that has received the highest percentage of “Thumbs Up” feedback across all conversations linked to it
-	 * Note: feedback table stores Rating 1-10 so for now I'm just considering "Thumbs Up" as Rating >= 8
 	 * 
+	 * @note   isThumbsUp is just 1 if thumbs up and 0 if not
 	 * @return N/A
 	 * 
 	 * @pre
@@ -1529,7 +1523,7 @@ public class LLMEcosystem
 	private void queryMostHelpfulPersona() throws SQLException
 	{
 		String sql = """
-			SELECT p.Name,
+			SELECT p.PName,
        			COUNT(f.FeedbackID) AS TotalFeedback,
        			SUM(f.IsThumbsUp) AS ThumbsUpCount,
        			ROUND(100.0 * SUM(f.IsThumbsUp) / COUNT(f.FeedbackID), 2) AS Percentage
@@ -1538,7 +1532,7 @@ public class LLMEcosystem
 			JOIN Message m ON c.ConversationID = m.ConversationID
 			JOIN Feedback f ON m.MessageID = f.MessageID
 			WHERE p.DeletedStatus = 0
-			GROUP BY p.Name
+			GROUP BY p.PName
 			HAVING COUNT(f.FeedbackID) > 0
 			ORDER BY Percentage DESC
 			FETCH FIRST 1 ROW ONLY;
@@ -1549,7 +1543,7 @@ public class LLMEcosystem
 			if (rs.next())
 			{
 				System.out.printf("Name: %s\nThumbs Up Percentage: %.2f%% (based on %d ratings)\n",
-						rs.getString("Name"), rs.getDouble("Percentage"), rs.getInt("TotalFeedback"));
+						rs.getString("PName"), rs.getDouble("Percentage"), rs.getInt("TotalFeedback"));
 			}
 			else
 			{
@@ -1573,13 +1567,13 @@ public class LLMEcosystem
 		int userId = Integer.parseInt(scanner.nextLine().trim());
 
 		String sql = """
-			SELECT w.Name AS WorkspaceName, COUNT(uw2.UserID) AS MemberCount
+			SELECT w.WName AS WorkspaceName, COUNT(uw2.UserID) AS MemberCount
 			FROM Workspace w
 			JOIN UserWorkspace uwAdmin ON w.WorkspaceID = uwAdmin.WorkspaceID
 			LEFT JOIN UserWorkspace uw2 ON w.WorkspaceID = uw2.WorkspaceID
-			WHERE uwAdmin.UserID = ? AND uwAdmin.Role = 'Admin'
-			GROUP BY w.Name
-			ORDER BY w.Name
+			WHERE uwAdmin.UserID = ? AND uwAdmin.UWRole = 'Admin'
+			GROUP BY w.WName
+			ORDER BY w.WName
 		""";
 
 		try (PreparedStatement stmt = conn.prepareStatement(sql))
